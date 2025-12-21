@@ -7,6 +7,13 @@ export const OBSTACLE_SCALE = 2.0
 // Combat phase - larger scale for close-up fighting
 export const COMBAT_SCALE = 4.0
 
+// INDIVIDUAL CHARACTER SCALES (Adjust these manually as needed)
+export const ENEMY_SCALES = {
+  lukas: 3.2,  // Smaller
+  duca: 4.0,   // Standard
+  leader: 4.5, // Reduced from 5.8 (Much Bigger)
+}
+
 // Native sprite sizes
 export const FRANK_FRAME_SIZE = 128
 

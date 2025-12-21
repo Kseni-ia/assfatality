@@ -4,10 +4,10 @@ import {
   COMBAT_SCALE,
   FRANK_FRAME_SIZE,
   COMBAT_PLAYER_SIZE,
-  COMBAT_ENEMY_SIZE,
-  COMBAT_GROUND_Y_OFFSET
+  COMBAT_GROUND_Y_OFFSET,
+  ENEMY_SCALES // Import new scales
 } from '../../config/settings'
-import { EnemyHealthBar, Announcements, AttackLoadingBar, AttackDangerZone, AssToolProjectiles } from './CombatUI'
+import { Announcements, AttackLoadingBar, AttackDangerZone, AssToolProjectiles, DamageOverlay } from './CombatUI'
 
 const FRANK_FRAMES = 4
 const LEADER_FRAMES = 5
@@ -19,6 +19,7 @@ export default function CombatPhase() {
   const bgImageRef = useRef(null)
   const [frankFrame, setFrankFrame] = useState(0)
   const [enemyFrame, setEnemyFrame] = useState(0)
+  const [isEnemyHit, setIsEnemyHit] = useState(false)
 
   // Load background image
   useEffect(() => {
@@ -55,6 +56,8 @@ export default function CombatPhase() {
     tickAssMeter,
     tickMana,
     updateAssToolProjectiles,
+    isInvincible,
+    enemyHitTimestamp,
   } = useGameStore()
 
   // Keyboard controls
@@ -106,7 +109,12 @@ export default function CombatPhase() {
     drawBackground(ctx, width, height, bgImageRef.current)
     drawGround(ctx, width, groundY)
     drawPlayerShadow(ctx, state.playerX, groundY)
-    drawEnemyShadow(ctx, state.enemyX, groundY)
+
+    // Draw Enemy Shadow (Requires scale consideration if we want it perfect, but standard size is likely fine for shadow)
+    // Actually, let's use the dynamic size for shadow too
+    const currentScale = (state.currentEnemyType && ENEMY_SCALES[state.currentEnemyType.id]) || COMBAT_SCALE
+    const currentEnemySize = 128 * currentScale
+    drawEnemyShadow(ctx, state.enemyX, groundY, currentEnemySize)
 
     animationRef.current = requestAnimationFrame(gameLoop)
   }, [])
@@ -147,14 +155,32 @@ export default function CombatPhase() {
     } else if (currentEnemyType.id === 'leader') {
       frameCount = LEADER_FRAMES
     }
-    const speed = enemyState === ENEMY_STATES.RUNNING ? 80 : 120
+    const speed = (enemyState === ENEMY_STATES.ATTACK_HIGH || enemyState === ENEMY_STATES.ATTACK_LOW) ? 60 :
+      enemyState === ENEMY_STATES.RUNNING ? 80 : 120
     const interval = setInterval(() => setEnemyFrame(prev => (prev + 1) % frameCount), speed)
     return () => clearInterval(interval)
   }, [enemyState, currentEnemyType])
 
+  // Reset frame when state changes to prevent index overflow (e.g. from 11 frames attack to 4 frames idle)
+  useEffect(() => {
+    setEnemyFrame(0)
+  }, [enemyState])
+
+  // Trigger hit effect when timestamp changes
+  useEffect(() => {
+    if (enemyHitTimestamp > 0) {
+      setIsEnemyHit(true)
+      const timer = setTimeout(() => setIsEnemyHit(false), 200) // 200ms flash
+      return () => clearTimeout(timer)
+    }
+  }, [enemyHitTimestamp])
+
   const groundY = typeof window !== 'undefined' ? window.innerHeight - COMBAT_GROUND_Y_OFFSET : 500
   const frankSpriteSize = COMBAT_PLAYER_SIZE
-  const enemySpriteSize = COMBAT_ENEMY_SIZE
+
+  // Calculate specific scale for current enemy
+  const currentEnemyScale = (currentEnemyType && ENEMY_SCALES[currentEnemyType.id]) || COMBAT_SCALE
+  const enemySpriteSize = 128 * currentEnemyScale
 
   const getFrankSprite = () => {
     if (playerState === PLAYER_STATES.RUNNING) return 'runningEast'
@@ -193,8 +219,9 @@ export default function CombatPhase() {
       <div
         className="absolute pointer-events-none"
         style={{
+          zIndex: 10,
           left: playerX,
-          top: groundY + playerY - frankSpriteSize + 60,
+          top: groundY + playerY - frankSpriteSize + 90 + (isDucking ? 60 : 0),
           width: frankSpriteSize,
           height: frankSpriteSize,
           backgroundImage: `url(/sprites/frank/${getFrankSprite()}.png)`,
@@ -210,32 +237,32 @@ export default function CombatPhase() {
         <div
           className="absolute pointer-events-none"
           style={{
+            zIndex: 20,
             left: enemyX,
-            top: groundY - enemySpriteSize + 60,
+            // Align enemy ground level with Frank
+            // Lukas needs 60, others (Duca, Leader) need 90 to match Frank's new position
+            top: groundY - enemySpriteSize + (currentEnemyType.id === 'lukas' ? 60 : 90),
             width: enemySpriteSize,
             height: enemySpriteSize,
             backgroundImage: `url(/sprites/${currentEnemyType.id}/${getEnemySprite()}.png)`,
-            backgroundPosition: `-${enemyFrame * LEADER_FRAME_SIZE * COMBAT_SCALE}px 0`,
-            backgroundSize: `${getEnemyFrameCount() * LEADER_FRAME_SIZE * COMBAT_SCALE}px ${enemySpriteSize}px`,
+            backgroundPosition: `-${enemyFrame * LEADER_FRAME_SIZE * currentEnemyScale}px 0`,
+            backgroundSize: `${getEnemyFrameCount() * LEADER_FRAME_SIZE * currentEnemyScale}px ${enemySpriteSize}px`,
             backgroundRepeat: 'no-repeat',
             imageRendering: 'pixelated',
-            transition: 'transform 0.5s ease-in, opacity 0.5s ease-in 1s',
-            transform: enemyHealth <= 0 ? 'rotate(90deg) translateY(50px)' : 'none',
+            transition: 'transform 0.1s, opacity 0.5s ease-in 1s', // Faster transform for pop effect
+            transform: enemyHealth <= 0 ? 'rotate(90deg) translateY(50px)' : isEnemyHit ? 'scale(1.1)' : 'none',
             opacity: enemyHealth <= 0 ? 0 : 1,
             transformOrigin: 'bottom center',
-            filter: enemyHealth <= 0 ? 'grayscale(100%)' : 'none',
+            // Blink red/white brightness when hit
+            filter: enemyHealth <= 0 ? 'grayscale(100%)' : isEnemyHit ? 'brightness(3) sepia(1) hue-rotate(-50deg) saturate(5) drop-shadow(0 0 15px red)' : 'none',
           }}
         />
       )}
 
-      <EnemyHealthBar
-        currentEnemyType={currentEnemyType}
-        enemyX={enemyX}
-        enemyHealth={enemyHealth}
-        groundY={groundY}
-        enemySpriteSize={enemySpriteSize}
+      <Announcements
+        showLeaderAnnouncement={showLeaderAnnouncement}
+        showFightText={showFightText}
       />
-      <Announcements showLeaderAnnouncement={showLeaderAnnouncement} showFightText={showFightText} />
       <AttackLoadingBar
         attackWarning={attackWarning}
         attackActive={attackActive}
@@ -244,6 +271,7 @@ export default function CombatPhase() {
         groundY={groundY}
         enemySpriteSize={enemySpriteSize}
         windupProgress={windupProgress}
+        currentEnemyType={currentEnemyType}
       />
       <AttackDangerZone
         attackActive={attackActive}
@@ -253,8 +281,12 @@ export default function CombatPhase() {
         enemyX={enemyX}
         groundY={groundY}
         frankSpriteSize={frankSpriteSize}
+        isDucking={isDucking}
+        isJumping={isJumping}
+        currentEnemyType={currentEnemyType}
       />
       <AssToolProjectiles projectiles={assToolProjectiles} groundY={groundY} />
+      <DamageOverlay isInvincible={isInvincible} />
     </div>
   )
 }
@@ -289,9 +321,10 @@ function drawPlayerShadow(ctx, playerX, groundY) {
   ctx.fill()
 }
 
-function drawEnemyShadow(ctx, enemyX, groundY) {
+function drawEnemyShadow(ctx, enemyX, groundY, size) {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+  const safeSize = size || 128 * COMBAT_SCALE
   ctx.beginPath()
-  ctx.ellipse(enemyX + COMBAT_ENEMY_SIZE / 2, groundY - 5, COMBAT_ENEMY_SIZE / 4, 20, 0, 0, Math.PI * 2)
+  ctx.ellipse(enemyX + safeSize / 2, groundY - 5, safeSize / 4, 20, 0, 0, Math.PI * 2)
   ctx.fill()
 }

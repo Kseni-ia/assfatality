@@ -58,6 +58,7 @@ const INITIAL_STATE = {
   obstaclesPassed: 0,
 
   attackWarning: null,
+  enemyHitTimestamp: 0,
   perfectDodge: false,
   comboCount: 0,
 
@@ -173,11 +174,19 @@ export const useGameStore = create((set, get) => ({
   },
 
   duck: () => {
-    const { isJumping, gameState } = get()
+    const { isJumping, isDucking, gameState } = get()
     if (gameState !== GAME_STATES.OBSTACLE_PHASE && gameState !== GAME_STATES.COMBAT_PHASE) return
-    if (isJumping) return
+    if (isJumping || isDucking) return // Prevent restart if already ducking
 
     set({ isDucking: true, playerState: PLAYER_STATES.DUCKING })
+
+    // Max duck time 1 second
+    setTimeout(() => {
+      const { isDucking } = get()
+      if (isDucking) {
+        get().stopDuck()
+      }
+    }, 1000)
   },
 
   stopDuck: () => {
@@ -298,7 +307,11 @@ export const useGameStore = create((set, get) => ({
     // Target positions - meet in center with characters closer together for combat
     // With larger sprites (4x scale = 512px), position them so they face each other
     const playerTargetX = centerX - 350
-    const enemyTargetX = centerX + 50
+
+    // Lukas fights closer with his machete
+    const { currentEnemyType } = get()
+    const enemyOffset = currentEnemyType?.id === 'lukas' ? -100 : currentEnemyType?.id === 'leader' ? -150 : 50
+    const enemyTargetX = centerX + enemyOffset
 
     // Leader announcement phase
     if (introPhase === 'leader_announcement') {
@@ -342,14 +355,14 @@ export const useGameStore = create((set, get) => ({
   },
 
   updateCombat: () => {
-    const { combatTimer, enemyState, lastAttackCycle, currentEnemyType, attackActive, isJumping, isDucking, hp } = get()
-    if (!combatTimer || !currentEnemyType) return
+    const { combatTimer, enemyState, lastAttackCycle, currentEnemyType, attackActive, isJumping, isDucking, hp, enemyHealth } = get()
+    if (!combatTimer || !currentEnemyType || enemyHealth <= 0) return
 
     const elapsed = Date.now() - combatTimer
-    const cycleDuration = 4000 // 4 seconds per attack cycle
-    const windupTime = 2000 // 2 seconds windup/warning (loading bar)
-    const activeTime = 500 // 0.5 seconds active damage window
-    const restTime = 1500 // 1.5 seconds rest before next attack
+    const cycleDuration = 2500 // Faster! 2.5 seconds per cycle (was 4000)
+    const windupTime = 1200 // Faster warning (was 2000)
+    const activeTime = 500 // 0.5s active damage window
+    const restTime = 800 // Less downtime (was 1500)
 
     const attackCycle = Math.floor(elapsed / cycleDuration)
     const timeInCycle = elapsed % cycleDuration
@@ -362,7 +375,8 @@ export const useGameStore = create((set, get) => ({
       attackType = 'HIGH' // Duca only high attacks
     } else {
       // Leader alternates randomly
-      attackType = attackCycle % 2 === 0 ? 'HIGH' : 'LOW'
+      // Use pseudo-random based on cycle to be deterministic per cycle but unpredictable
+      attackType = (Math.floor(Math.abs(Math.sin(attackCycle + 1) * 10000)) % 2 === 0) ? 'HIGH' : 'LOW'
     }
 
     const enemyAnimState = attackType === 'HIGH' ? ENEMY_STATES.ATTACK_HIGH : ENEMY_STATES.ATTACK_LOW
@@ -660,8 +674,8 @@ export const useGameStore = create((set, get) => ({
     // Launch first projectile immediately
     const firstProjectile = {
       id: Date.now(),
-      x: playerX + 60, // Start from top of Frank's stick
-      y: -350, // Higher up, at chest/head level (Frank is ~512px tall)
+      x: playerX + 220, // Adjusted to spawn from Middle of Frank (Sprite is 512px wide)
+      y: -250, // Adjusted to Middle Height (ground - 250px)
       speed: 18,
       frame: 0,
       hit: false,
@@ -678,10 +692,11 @@ export const useGameStore = create((set, get) => ({
         const state = get()
         if (state.gameState !== GAME_STATES.COMBAT_PHASE) return
 
+        // Recalculate based on CURRENT player position in case he moved
         const newProjectile = {
           id: Date.now() + i,
-          x: state.playerX + 60, // Start from top of Frank's stick
-          y: -350, // Same height as first
+          x: state.playerX + 220, // Consistent Middle X
+          y: -250, // Consistent Middle Y
           speed: 18,
           frame: 0,
           hit: false,
@@ -705,20 +720,19 @@ export const useGameStore = create((set, get) => ({
     let damageDealt = 0
 
     const updatedProjectiles = assToolProjectiles.map(proj => {
-      if (proj.hit) return proj
-
       const newX = proj.x + proj.speed
       // Very slow animation: increment by ~0.008 so each frame shows for ~2 seconds (120 ticks)
       const newFrame = (proj.frame + 0.008) % 2 // 2 frame animation, very slow cycling
 
       // Check if projectile hit enemy
-      if (newX >= enemyX && newX <= enemyX + 100) {
+      // Only damage if it hasn't hit THIS enemy yet (we use 'hit' flag for this single combat instance)
+      if (!proj.hit && newX >= enemyX && newX <= enemyX + 100) {
         damageDealt++
-        return { ...proj, x: newX, frame: newFrame, hit: true }
+        return { ...proj, x: newX, frame: newFrame, hit: true } // Mark as hit but continue moving
       }
 
       return { ...proj, x: newX, frame: newFrame }
-    }).filter(proj => !proj.hit && proj.x < (typeof window !== 'undefined' ? window.innerWidth + 100 : 1200))
+    }).filter(proj => proj.x < (typeof window !== 'undefined' ? window.innerWidth + 100 : 1200)) // Only remove when off-screen
 
     set({ assToolProjectiles: updatedProjectiles })
 
@@ -733,13 +747,13 @@ export const useGameStore = create((set, get) => ({
         if (nextIndex >= ENEMY_SEQUENCE.length) {
           set({ enemyHealth: 0, gameState: GAME_STATES.VICTORY })
         } else {
-          set({ enemyHealth: 0 })
+          set({ enemyHealth: 0, attackActive: false, attackWarning: null })
           setTimeout(() => {
             get().startCombatIntro(nextIndex)
           }, 1500)
         }
       } else {
-        set({ enemyHealth: newHealth, screenShake: true })
+        set({ enemyHealth: newHealth, screenShake: true, enemyHitTimestamp: Date.now() })
         setTimeout(() => set({ screenShake: false }), 200)
       }
     }
