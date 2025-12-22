@@ -68,8 +68,7 @@ const INITIAL_STATE = {
 
   // Mana system for assTool
   mana: 0,
-  maxMana: 100,
-  manaRegenRate: 2, // mana per second
+  maxMana: 6, // 6 hearts
   assToolProjectiles: [],
   lastManaRegen: 0,
 
@@ -310,7 +309,7 @@ export const useGameStore = create((set, get) => ({
 
     // Lukas fights closer with his machete
     const { currentEnemyType } = get()
-    const enemyOffset = currentEnemyType?.id === 'lukas' ? -100 : currentEnemyType?.id === 'leader' ? -150 : 50
+    const enemyOffset = currentEnemyType?.id === 'leader' ? -150 : 50
     const enemyTargetX = centerX + enemyOffset
 
     // Leader announcement phase
@@ -348,6 +347,8 @@ export const useGameStore = create((set, get) => ({
             enemyState: ENEMY_STATES.IDLE,
             combatTimer: Date.now(),
             introPhase: 'combat',
+            mana: 0,
+            lastManaRegen: Date.now(),
           })
         }, 1500)
       }
@@ -654,7 +655,7 @@ export const useGameStore = create((set, get) => ({
     const deltaSeconds = (now - lastManaRegen) / 1000
 
     if (deltaSeconds > 0.05) { // Update every 50ms
-      const manaGain = 8 * deltaSeconds // 8 mana per second (~12.5 sec to fill)
+      const manaGain = 0.5 * deltaSeconds // 0.5 mana per second (1 heart every 2 secs)
       set({
         mana: Math.min(maxMana, mana + manaGain),
         lastManaRegen: now,
@@ -662,19 +663,16 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
-  // Shoot assTool (requires full mana)
+  // Shoot assTool (requires > 0 mana)
   shootAssTool: () => {
     const { mana, maxMana, gameState, playerX, assToolProjectiles } = get()
     if (gameState !== GAME_STATES.COMBAT_PHASE) return false
-    if (mana < maxMana) return false
+    if (mana < 1) return false // Need at least 1 heart
 
-    // Spawn 2-4 projectiles with staggered timing
-    const projectileCount = 2 + Math.floor(Math.random() * 3) // 2, 3, or 4
-
-    // Launch first projectile immediately
+    // Launch single projectile immediately
     const firstProjectile = {
       id: Date.now(),
-      x: playerX + 220, // Adjusted to spawn from Middle of Frank (Sprite is 512px wide)
+      x: playerX + 20, // Spawn very close to Frank
       y: -250, // Adjusted to Middle Height (ground - 250px)
       speed: 18,
       frame: 0,
@@ -682,31 +680,9 @@ export const useGameStore = create((set, get) => ({
     }
 
     set({
-      mana: 0, // Reset mana
+      mana: mana - 1, // Consume 1 heart
       assToolProjectiles: [...assToolProjectiles, firstProjectile],
     })
-
-    // Launch remaining projectiles one by one with delay
-    for (let i = 1; i < projectileCount; i++) {
-      setTimeout(() => {
-        const state = get()
-        if (state.gameState !== GAME_STATES.COMBAT_PHASE) return
-
-        // Recalculate based on CURRENT player position in case he moved
-        const newProjectile = {
-          id: Date.now() + i,
-          x: state.playerX + 220, // Consistent Middle X
-          y: -250, // Consistent Middle Y
-          speed: 18,
-          frame: 0,
-          hit: false,
-        }
-
-        set({
-          assToolProjectiles: [...get().assToolProjectiles, newProjectile],
-        })
-      }, i * 300) // 300ms delay between each projectile
-    }
 
     return true
   },
@@ -724,7 +700,6 @@ export const useGameStore = create((set, get) => ({
       // Very slow animation: increment by ~0.008 so each frame shows for ~2 seconds (120 ticks)
       const newFrame = (proj.frame + 0.008) % 2 // 2 frame animation, very slow cycling
 
-      // Check if projectile hit enemy
       // Only damage if it hasn't hit THIS enemy yet (we use 'hit' flag for this single combat instance)
       if (!proj.hit && newX >= enemyX && newX <= enemyX + 100) {
         damageDealt++
@@ -738,7 +713,7 @@ export const useGameStore = create((set, get) => ({
 
     // Apply damage to enemy
     if (damageDealt > 0 && currentEnemyType) {
-      const newHealth = Math.max(0, enemyHealth - damageDealt)
+      const newHealth = Math.max(0, enemyHealth - (damageDealt * 0.5))
 
       if (newHealth <= 0) {
         // Enemy defeated

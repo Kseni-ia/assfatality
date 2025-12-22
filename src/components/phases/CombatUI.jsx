@@ -146,52 +146,71 @@ export function AttackDangerZone({ attackActive, gameState, attackWarning, playe
         </div>
       )}
 
-      {/* Lukas's Machete Slash Effect OR Leader's Low Attack */}
       {(currentEnemyType?.id === 'lukas' || (currentEnemyType?.id === 'leader' && attackWarning?.type === 'LOW')) && (
         <div className="absolute pointer-events-none" style={{
-          left: playerX + 210, // Centered on Frank's body (Sprite is 512px, center is ~256, minus half width 50 = ~210)
-          top: groundY - 40, // At ground/feet level
-          width: 100, // Even smaller (Requested)
+          left: 0,
+          top: groundY - 110, // Lifted UP significantly to be "under Frank" (lower body) but NOT "in the earth"
+          width: '100%',
           height: 100,
-          zIndex: 200, // Boost Z-index just in case
+          zIndex: 200,
         }}>
-          {/* Primary White Slash - Extremely Bright and Thick */}
+          {/* Flying Crescent Slash - Primary (SVG for Sharpness/Elegance) */}
           <div style={{
             position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            borderTop: '30px solid #ffffff', // Very thick
-            borderRight: '15px solid transparent',
-            filter: 'drop-shadow(0 0 25px rgba(255,255,255,1)) drop-shadow(0 0 10px rgba(255,255,255,1))', // Double glow
+            left: enemyX,
+            top: -50,
+            width: 250, // Slightly larger container for the swoosh
+            height: 150,
+            filter: 'drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 20px #00ffff) drop-shadow(0 0 40px #0000ff)', // Intense Glow
+            transform: 'rotate(50deg)', // Initial angle - adjusted for horizontal look
             opacity: 0,
-            transform: 'rotate(-45deg) scale(0.5)',
-            animation: 'machete-slash-white 0.12s ease-out infinite',
-          }} />
-
-          {/* Secondary Red Trail */}
-          <div style={{
-            position: 'absolute',
-            inset: 5,
-            borderRadius: '50%',
-            borderTop: '20px solid #ff0000', // Very thick red
-            borderRight: '15px solid transparent',
-            opacity: 0,
-            transform: 'rotate(-50deg) scale(0.4)',
-            animation: 'machete-slash-red 0.12s ease-out infinite 0.04s',
-          }} />
+            animation: 'flying-slash 0.3s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards',
+          }}>
+            <svg viewBox="0 0 100 100" width="100%" height="100%" overflow="visible">
+              <defs>
+                <linearGradient id="bladeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="50%" stopColor="#e0ffff" />
+                  <stop offset="100%" stopColor="#00ffff" />
+                </linearGradient>
+              </defs>
+              {/* Elegant Sharp Swoosh Path */}
+              {/* Starts thin, curves out, sharp tip */}
+              <path d="M0,100 Q40,40 100,10 Q60,50 0,100 Z" fill="url(#bladeGradient)" stroke="white" strokeWidth="2" />
+              {/* Inner Detail Line */}
+              <path d="M10,95 Q45,50 85,25" fill="none" stroke="#00ffff" strokeWidth="2" opacity="0.8" />
+            </svg>
+          </div>
 
           <style jsx>{`
-              @keyframes machete-slash-white {
-                  0% { opacity: 0.5; transform: rotate(-60deg) scale(0.5); } 
-                  50% { opacity: 1; transform: rotate(0deg) scale(1); }
-                  100% { opacity: 0; transform: rotate(45deg) scale(1.3); }
+              @keyframes flying-slash {
+                  0% { transform: translateX(0) rotate(40deg) scale(0.5, 0.8) skewX(30deg); opacity: 0; }
+                  20% { opacity: 1; transform: translateX(0) rotate(50deg) scale(1, 1) skewX(0deg); }
+                  50% { transform: translateX(${(playerX - enemyX) * 0.5}px) rotate(55deg) scale(1.3, 0.8) skewX(-20deg); } /* Mid-flight "whip" flex */
+                  90% { opacity: 1; transform: translateX(${playerX - enemyX}px) rotate(65deg) scale(1.2, 1) skewX(0deg); }
+                  100% { opacity: 0; transform: translateX(${playerX - enemyX - 50}px) rotate(80deg) scale(1.3, 1); } 
               }
-              @keyframes machete-slash-red {
-                  0% { opacity: 0; transform: rotate(-60deg) scale(0.4); }
-                  50% { opacity: 1; transform: rotate(-5deg) scale(0.9); }
-                  100% { opacity: 0; transform: rotate(40deg) scale(1.1); }
+              @keyframes slash-impact {
+                  0% { opacity: 0; transform: scaleX(0); }
+                  20% { opacity: 1; transform: scaleX(1.2); }
+                  100% { opacity: 0; transform: scaleX(1.5); }
               }
            `}</style>
+
+          {/* Diagonal Cut Impact at Player Position */}
+          <div style={{
+            position: 'absolute',
+            left: playerX,
+            top: 40, // Centered on Frank
+            width: 140,
+            height: 8,
+            background: 'linear-gradient(90deg, transparent, #fff, #fff, transparent)',
+            boxShadow: '0 0 15px #fff',
+            transformOrigin: 'center',
+            transform: 'rotate(-25deg)',
+            opacity: 0,
+            animation: 'slash-impact 0.2s ease-out 0.25s forwards',
+          }} />
         </div>
       )}
     </>
@@ -205,10 +224,10 @@ export function AssToolProjectiles({ projectiles, groundY }) {
   return projectiles.map((proj) => (
     <div key={proj.id} className="absolute pointer-events-none" style={{
       left: proj.x,
-      top: groundY + proj.y - 20, // Middle of Frank (proj.y is -250, so total -270)
+      top: groundY + proj.y - (128 * ASS_TOOL_SCALE / 2) + 60, // Centered on Frank (with slight adjustment down)
       width: 128 * ASS_TOOL_SCALE, // Corrected frame width (half of 256)
       height: 128 * ASS_TOOL_SCALE,
-      backgroundImage: 'url(/sprites/tool/assTool.png)',
+      backgroundImage: `url(/sprites/tool/${proj.hit ? 'attackTool' : 'assTool'}.png)`,
       backgroundPosition: `-${Math.floor(proj.frame) * 128 * ASS_TOOL_SCALE}px 0`,
       backgroundSize: `${256 * ASS_TOOL_SCALE}px ${128 * ASS_TOOL_SCALE}px`,
       backgroundRepeat: 'no-repeat',
@@ -216,6 +235,7 @@ export function AssToolProjectiles({ projectiles, groundY }) {
       zIndex: 100,
       // Very bright glow for maximum visibility
       filter: 'drop-shadow(0 0 10px #ff00ff) drop-shadow(0 0 15px #00ffff) drop-shadow(0 0 20px #ffffff) brightness(1.3)',
+
       // Fade out effect after hitting (piercing) the enemy
       opacity: proj.hit ? 0 : 1,
       transition: 'opacity 0.4s ease-in', // Start fading when hit, disappear over ~400px distance

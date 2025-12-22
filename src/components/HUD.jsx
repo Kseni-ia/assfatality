@@ -16,7 +16,7 @@ export default function HUD() {
 
   const isFatalityReady = assMeter >= 100 && gameState === GAME_STATES.COMBAT_PHASE
   const isManaFull = mana >= maxMana
-  const showManaBar = gameState === GAME_STATES.COMBAT_PHASE
+  const showManaBar = gameState === GAME_STATES.COMBAT_PHASE || gameState === GAME_STATES.COMBAT_INTRO
   const showCombatHUD = gameState === GAME_STATES.COMBAT_PHASE || gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.ASS_FATALITY || gameState === GAME_STATES.VICTORY
 
   return (
@@ -26,7 +26,7 @@ export default function HUD() {
       <div className="flex justify-between items-start w-full px-2 pt-2">
 
         {/* LEFT: FRANK (Player 1) */}
-        <div className="flex flex-col w-[42%] max-w-[450px] relative group">
+        <div className="flex flex-col w-[42%] max-w-[800px] relative group">
           {/* Info Text Row */}
           <div className="flex justify-between items-end mb-1 px-2 relative z-10">
             <span className="text-white font-black text-lg md:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
@@ -56,13 +56,33 @@ export default function HUD() {
             <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
           </div>
 
-          {/* MANA BAR (Sub-bar) */}
+          {/* MANA HEARTS (Replacement for Bar) */}
           {showManaBar && (
-            <div className="relative h-2 md:h-3 w-[75%] mt-1 ml-1 transform -skew-x-12 origin-top-left overflow-hidden rounded-sm shadow bg-gray-900/60 border border-cyan-500/50">
-              <div
-                className={`absolute inset-y-0 left-0 transition-all duration-200 ${isManaFull ? 'bg-gradient-to-r from-cyan-300 to-blue-400 shadow-[0_0_15px_rgba(34,211,238,1)] animate-pulse' : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_8px_rgba(6,182,212,0.6)]'}`}
-                style={{ width: `${(mana / maxMana) * 100}%` }}
-              />
+            <div className="flex absolute top-6 -left-16 z-30 pointer-events-none">
+              {[...Array(6)].map((_, i) => {
+                const fillAmount = Math.max(0, Math.min(1, mana - i))
+                return (
+                  <div
+                    key={i}
+                    className={`relative w-32 h-32 md:w-56 md:h-56 shrink-0 ${i > 0 ? '-ml-14 md:-ml-36' : ''}`}
+                    style={{ zIndex: 6 - i }}
+                  >
+                    {/* Grey Background Heart */}
+                    <img
+                      src="/sprites/tool/barTool.png"
+                      alt="mana slot"
+                      className="absolute inset-0 w-full h-full object-contain filter grayscale opacity-50"
+                    />
+                    {/* Filling Colorful Heart */}
+                    <img
+                      src="/sprites/tool/barTool.png"
+                      alt="mana fill"
+                      className="absolute inset-0 w-full h-full object-contain"
+                      style={{ clipPath: `inset(0 ${(1 - fillAmount) * 100}% 0 0)` }}
+                    />
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -90,7 +110,7 @@ export default function HUD() {
         </div>
 
         {/* RIGHT: ENEMY (Player 2) */}
-        <div className="flex flex-col w-[42%] max-w-[450px] items-end relative group">
+        <div className="flex flex-col w-[42%] max-w-[800px] items-end relative group">
           {showCombatHUD && currentEnemyType ? (
             <>
               <div className="flex justify-between items-end mb-1 px-2 w-full relative z-10 flex-row-reverse">
