@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { PLAYER_HITBOX, OBSTACLE_SIZES } from '../config/settings'
+import { ENEMY_HEALTH, DAMAGE_VALUES } from '../config/gameConfig'
+import { audioManager } from '../utils/audioManager'
 
 export const GAME_STATES = {
   MENU: 'menu',
@@ -28,9 +30,9 @@ export const PLAYER_STATES = {
 }
 
 export const ENEMY_TYPES = {
-  LUKAS: { id: 'lukas', name: 'Lukas', attackType: 'LOW', speed: 1.0, health: 5, isLeader: false },
-  DUCA: { id: 'duca', name: 'Duca', attackType: 'HIGH', speed: 1.0, health: 5, isLeader: false },
-  LEADER: { id: 'leader', name: 'Leader', attackType: 'MIXED', speed: 1.0, health: 6, isLeader: true },
+  LUKAS: { id: 'lukas', name: 'Lukas', attackType: 'LOW', speed: 1.0, health: ENEMY_HEALTH.LUKAS, isLeader: false },
+  DUCA: { id: 'duca', name: 'Duca', attackType: 'HIGH', speed: 1.0, health: ENEMY_HEALTH.DUCA, isLeader: false },
+  LEADER: { id: 'leader', name: 'Leader', attackType: 'MIXED', speed: 1.0, health: ENEMY_HEALTH.LEADER, isLeader: true },
 }
 
 // Enemy sequence order
@@ -100,6 +102,13 @@ const INITIAL_STATE = {
   attackActive: false,
   currentAttackType: null,
   windupProgress: 0, // 0 to 1 loading bar
+  dodgeProcessed: false, // Track if current attack was dodged
+
+  // Ultimate Cinematic State
+  ultimatePhase: 'none', // 'none', 'shake', 'grow', 'crash', 'impact'
+  startUltimateTime: 0,
+  ultimatePos: { x: 0, y: 0 },
+  ultimateScale: 1,
 }
 
 export const useGameStore = create((set, get) => ({
@@ -156,6 +165,7 @@ export const useGameStore = create((set, get) => ({
       playerVelocityY: -22,
       jumpHoldTime: Date.now(),
     })
+    audioManager.play('jump')
   },
 
   holdJump: () => {
@@ -178,6 +188,7 @@ export const useGameStore = create((set, get) => ({
     if (isJumping || isDucking) return // Prevent restart if already ducking
 
     set({ isDucking: true, playerState: PLAYER_STATES.DUCKING })
+    audioManager.play('duck')
 
     // Max duck time 1 second
     setTimeout(() => {
@@ -270,7 +281,7 @@ export const useGameStore = create((set, get) => ({
       playerState: PLAYER_STATES.RUNNING,
       hp: 3, // Full health
       score: enemyIndex * 1000, // Score based on progress
-      assMeter: 50, // Some ass meter built up
+      assMeter: 0, // Start empty
       enemies: [{ ...enemyType, isAttacking: false, attackTimer: 2000, animFrame: 0 }],
       currentEnemyIndex: 0,
       currentEnemyType: enemyType,
@@ -294,7 +305,9 @@ export const useGameStore = create((set, get) => ({
       isBlinking: false,
       attackWarning: null,
       attackActive: false,
+      attackActive: false,
       windupProgress: 0,
+      dodgeProcessed: false,
     })
   },
 
@@ -339,6 +352,7 @@ export const useGameStore = create((set, get) => ({
           showFightText: true,
           introPhase: 'fight_text',
         })
+        audioManager.play('fight')
         // Start combat after "FIGHT!" text
         setTimeout(() => {
           set({
@@ -390,6 +404,7 @@ export const useGameStore = create((set, get) => ({
         currentAttackType: attackType,
         attackActive: false,
         windupProgress: 0,
+        dodgeProcessed: false,
       })
       get().setAttackWarning({ type: attackType })
     }
@@ -414,6 +429,8 @@ export const useGameStore = create((set, get) => ({
           enemyState: enemyAnimState, // Only now play attack animation
           windupProgress: 1,
         })
+        const enemyId = get().currentEnemyType.id
+        audioManager.play(enemyId === 'leader' ? 'leaderAttack' : enemyId + 'Attack')
       }
 
       // Continuously check if player gets hit during the ENTIRE active window
@@ -433,10 +450,42 @@ export const useGameStore = create((set, get) => ({
         }
       }
 
+      // Dodge Reward Logic
+      const { dodgeProcessed, assMeter, score, comboCount } = get()
+      if (!playerHit && !dodgeProcessed) {
+        // If we are in the active window and NOT hit, check if we are successfully dodging
+        let successfulDodge = false
+        if (attackType === 'LOW' && isJumping) successfulDodge = true
+        if (attackType === 'HIGH' && isDucking) successfulDodge = true
+
+        if (successfulDodge) {
+          const meterGain = 5 // 20 dodges to fill (100 / 5)
+          const newMeter = Math.min(100, assMeter + meterGain)
+          const newCombo = comboCount + 1
+
+          set({
+            dodgeProcessed: true,
+            assMeter: newMeter,
+            score: score + 100 * newCombo,
+            comboCount: newCombo,
+          })
+
+          let comboText = 'AWESOME!'
+          if (newCombo > 1) {
+            const praises = ['GREAT!', 'FANTASTIC!', 'SUPER!', 'WILD!', '', '']
+            const praise = praises[Math.floor(Math.random() * praises.length)]
+            comboText = praise ? `${newCombo}x COMBO! ${praise}` : `${newCombo}x COMBO!`
+          }
+          get().addEffect(comboText, true)
+        }
+      }
+
       if (playerHit && !isInvincible) {
         const newHp = hp - 1
         set({
           hp: newHp,
+          assMeter: 0, // Reset meter on hit
+          comboCount: 0, // Reset combo on hit
           screenShake: true,
           isInvincible: true,
         })
@@ -444,6 +493,9 @@ export const useGameStore = create((set, get) => ({
 
         if (newHp <= 0) {
           set({ gameState: GAME_STATES.GAME_OVER })
+          audioManager.play('lose')
+        } else {
+          audioManager.play('frankDamage')
         }
       }
     }
@@ -470,15 +522,19 @@ export const useGameStore = create((set, get) => ({
       if (nextIndex >= ENEMY_SEQUENCE.length) {
         // All enemies defeated
         set({ gameState: GAME_STATES.VICTORY })
+        audioManager.play('win')
       } else {
         // Short delay then start next enemy
         set({ enemyHealth: 0 })
         setTimeout(() => {
           get().startCombatIntro(nextIndex)
         }, 1500)
+        audioManager.play('enemyDeath')
       }
     } else {
       set({ enemyHealth: newHealth })
+      const enemyId = get().currentEnemyType.id
+      audioManager.play(enemyId === 'leader' ? 'leaderHit' : enemyId + 'Hit')
     }
   },
 
@@ -504,7 +560,7 @@ export const useGameStore = create((set, get) => ({
       const timing = Math.random()
       perfect = timing > 0.7
 
-      const meterGain = perfect ? 25 : 15
+      const meterGain = perfect ? 10 : 5 // ~20 hits to fill (100 / 5)
       const newMeter = Math.min(100, assMeter + meterGain)
       const newCombo = comboCount + 1
       const scoreGain = perfect ? 200 * newCombo : 100 * newCombo
@@ -523,6 +579,8 @@ export const useGameStore = create((set, get) => ({
       }
 
       get().addEffect(perfect ? 'PERFECT!' : 'DODGE!', perfect)
+      audioManager.play('frankAttack')
+      if (perfect) audioManager.play('perfect')
 
       // Damage enemy on successful dodge
       get().damageEnemy()
@@ -541,6 +599,9 @@ export const useGameStore = create((set, get) => ({
 
       if (newHp <= 0) {
         set({ gameState: GAME_STATES.GAME_OVER })
+        audioManager.play('lose')
+      } else {
+        audioManager.play('frankDamage')
       }
     }
   },
@@ -574,6 +635,105 @@ export const useGameStore = create((set, get) => ({
     })
   },
 
+  triggerCinematicUltimate: () => {
+    const { assMeter, gameState, enemies } = get()
+    if (assMeter < 100 || gameState !== GAME_STATES.COMBAT_PHASE) return
+
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000
+    const startX = screenWidth / 2
+    const startY = 150 // Approx top-20 location
+
+    set({
+      gameState: GAME_STATES.ASS_FATALITY, // This freezes the normal combat loop
+      ultimatePhase: 'shake',
+      ultimatePos: { x: startX, y: startY },
+      ultimateScale: 1,
+      startUltimateTime: Date.now(),
+      // Freeze characters in Idle
+      playerState: PLAYER_STATES.IDLE,
+      enemyState: ENEMY_STATES.IDLE,
+    })
+    audioManager.play('fatality')
+  },
+
+  updateUltimate: () => {
+    const { ultimatePhase, startUltimateTime, ultimatePos, enemyX, enemyHealth, currentEnemyType } = get()
+    if (ultimatePhase === 'none') return
+
+    const now = Date.now()
+    const elapsed = now - startUltimateTime
+
+    // Phase 1: Shake (0 - 1.5s)
+    if (elapsed < 1500) {
+      // Jitter
+      const jitter = 5
+      set({
+        ultimatePhase: 'shake',
+        ultimatePos: {
+          x: (typeof window !== 'undefined' ? window.innerWidth / 2 : 500) + (Math.random() * jitter - jitter / 2),
+          y: 150 + (Math.random() * jitter - jitter / 2)
+        }
+      })
+    }
+    // Phase 2: Grow (1.5s - 2.5s)
+    else if (elapsed < 2500) {
+      const growProgress = (elapsed - 1500) / 1000
+      set({
+        ultimatePhase: 'grow',
+        ultimateScale: 1 + growProgress * 0.5, // Grow to 1.5x
+        ultimatePos: { x: typeof window !== 'undefined' ? window.innerWidth / 2 : 500, y: 150 } // Stabilize
+      })
+    }
+    // Phase 3: Crash (Start moving towards enemy)
+    else if (ultimatePhase !== 'impact') {
+      // Move towards enemy
+      // Target: Enemy center (approx)
+      const targetX = enemyX + 50
+      const targetY = 400 // Middle of screen height approx
+
+      const dx = targetX - ultimatePos.x
+      const dy = targetY - ultimatePos.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+
+      if (dist < 50) {
+        // IMPACT!
+        // IMPACT!
+        const maxHp = currentEnemyType ? currentEnemyType.health : 6
+        const damage = maxHp * DAMAGE_VALUES.ULTIMATE_PERCENTAGE // 30% damage
+        const newHealth = Math.max(0, enemyHealth - damage)
+
+        set({
+          ultimatePhase: 'impact',
+          enemyHealth: newHealth,
+          screenShake: true,
+          assMeter: 0, // Consume meter
+        })
+
+        get().addEffect('FATALITY!', true)
+
+        // Wait a bit then resume or victory
+        setTimeout(() => {
+          set({ screenShake: false, ultimatePhase: 'none', gameState: GAME_STATES.COMBAT_PHASE })
+          if (newHealth <= 0) {
+            get().defeatEnemy()
+          }
+        }, 1000)
+
+      } else {
+        // Move fast
+        const speed = 40
+        const angle = Math.atan2(dy, dx)
+        set({
+          ultimatePhase: 'crash',
+          ultimatePos: {
+            x: ultimatePos.x + Math.cos(angle) * speed,
+            y: ultimatePos.y + Math.sin(angle) * speed
+          }
+        })
+      }
+    }
+  },
+
   hitFatalityTarget: (targetId, timing) => {
     const { fatalityTargets, fatalityScore } = get()
     const target = fatalityTargets.find(t => t.id === targetId)
@@ -581,6 +741,12 @@ export const useGameStore = create((set, get) => ({
 
     const isHit = timing === 'perfect' || timing === 'good'
     const points = timing === 'perfect' ? 2 : 1
+
+    if (timing === 'perfect') {
+      audioManager.play('perfect')
+    } else if (isHit) {
+      audioManager.play('frankAttack')
+    }
 
     set({
       fatalityTargets: fatalityTargets.map(t =>
@@ -638,12 +804,11 @@ export const useGameStore = create((set, get) => ({
     }, 1000)
   },
 
-  // Passive meter gain
+  // Passive meter gain - REMOVED per request (only fills on dodge)
   tickAssMeter: () => {
-    const { assMeter, gameState } = get()
-    if (gameState !== GAME_STATES.COMBAT_PHASE) return
-
-    set({ assMeter: Math.min(100, assMeter + 0.1) })
+    // const { assMeter, gameState } = get()
+    // if (gameState !== GAME_STATES.COMBAT_PHASE) return
+    // set({ assMeter: Math.min(100, assMeter + 0.1) })
   },
 
   // Mana regeneration (called every frame during combat)
@@ -655,7 +820,7 @@ export const useGameStore = create((set, get) => ({
     const deltaSeconds = (now - lastManaRegen) / 1000
 
     if (deltaSeconds > 0.05) { // Update every 50ms
-      const manaGain = 0.5 * deltaSeconds // 0.5 mana per second (1 heart every 2 secs)
+      const manaGain = 0.25 * deltaSeconds // 0.25 mana per second (1 heart every 4 secs)
       set({
         mana: Math.min(maxMana, mana + manaGain),
         lastManaRegen: now,
@@ -683,6 +848,7 @@ export const useGameStore = create((set, get) => ({
       mana: mana - 1, // Consume 1 heart
       assToolProjectiles: [...assToolProjectiles, firstProjectile],
     })
+    audioManager.play('frankAttack')
 
     return true
   },
@@ -713,7 +879,8 @@ export const useGameStore = create((set, get) => ({
 
     // Apply damage to enemy
     if (damageDealt > 0 && currentEnemyType) {
-      const newHealth = Math.max(0, enemyHealth - (damageDealt * 0.5))
+      // REDUCED DAMAGE: Now using configured value (1)
+      const newHealth = Math.max(0, enemyHealth - (damageDealt * DAMAGE_VALUES.ASS_TOOL))
 
       if (newHealth <= 0) {
         // Enemy defeated
@@ -730,6 +897,8 @@ export const useGameStore = create((set, get) => ({
       } else {
         set({ enemyHealth: newHealth, screenShake: true, enemyHitTimestamp: Date.now() })
         setTimeout(() => set({ screenShake: false }), 200)
+        const enemyId = get().currentEnemyType.id
+        audioManager.play(enemyId === 'leader' ? 'leaderHit' : enemyId + 'Hit')
       }
     }
   },
@@ -788,7 +957,9 @@ export const useGameStore = create((set, get) => ({
 
       if (newHp <= 0) {
         set({ gameState: GAME_STATES.GAME_OVER })
+        audioManager.play('lose')
       } else {
+        audioManager.play('frankDamage')
         // Restart level with remaining lives after short delay
         setTimeout(() => {
           get().restartLevel()

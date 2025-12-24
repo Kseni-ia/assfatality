@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useGameStore, GAME_STATES } from './store/gameStore'
 import MainMenu from './components/MainMenu'
 import HUD from './components/HUD'
@@ -7,6 +7,7 @@ import AssFatalityMinigame from './components/AssFatalityMinigame'
 import VictoryScreen from './components/VictoryScreen'
 import GameOverScreen from './components/GameOverScreen'
 import DevMenu from './components/DevMenu'
+import PortraitWarning from './components/PortraitWarning'
 
 // Phase components
 import ObstaclePhase from './components/phases/ObstaclePhase'
@@ -18,14 +19,26 @@ const isDev = import.meta.env.DEV
 
 export default function App() {
   const { gameState, setMobile, screenShake, slowMotion } = useGameStore()
+  const [isPortrait, setIsPortrait] = useState(false)
 
   useEffect(() => {
-    const checkMobile = () => {
-      setMobile(window.innerWidth <= 768 || 'ontouchstart' in window)
+    const handleResize = () => {
+      const isMobileDevice = window.innerWidth <= 960 || 'ontouchstart' in window
+      const portrait = window.innerHeight > window.innerWidth
+
+      setMobile(isMobileDevice)
+      // Only show warning if it's a mobile device and in portrait
+      setIsPortrait(isMobileDevice && portrait)
     }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
+    }
   }, [setMobile])
 
   return (
@@ -37,6 +50,9 @@ export default function App() {
     >
       {/* Dev menu - only in development */}
       {isDev && <DevMenu />}
+
+      {/* Portrait Warning Overlay */}
+      {isPortrait && <PortraitWarning />}
 
       {/* Scanlines overlay */}
       <div className="absolute inset-0 scanlines z-50 pointer-events-none" />

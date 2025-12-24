@@ -58,6 +58,11 @@ export default function CombatPhase() {
     updateAssToolProjectiles,
     isInvincible,
     enemyHitTimestamp,
+    ultimatePhase,
+    ultimatePos,
+    ultimateScale,
+    triggerCinematicUltimate,
+    updateUltimate,
   } = useGameStore()
 
   // Keyboard controls
@@ -67,6 +72,7 @@ export default function CombatPhase() {
       if (e.key === 'ArrowUp' || e.key === ' ') { e.preventDefault(); jump() }
       if (e.key === 'ArrowDown') { e.preventDefault(); duck() }
       if (e.key === 'a' || e.key === 'A') { e.preventDefault(); shootAssTool() }
+      if (e.key === 'r' || e.key === 'R') { e.preventDefault(); triggerCinematicUltimate() }
     }
     const handleKeyUp = (e) => {
       if (e.key === 'ArrowUp' || e.key === ' ') releaseJump()
@@ -103,6 +109,9 @@ export default function CombatPhase() {
       state.tickAssMeter()
       state.tickMana()
       state.updateAssToolProjectiles()
+    }
+    if (state.gameState === GAME_STATES.ASS_FATALITY) {
+      state.updateUltimate()
     }
 
     // Draw background (static for combat)
@@ -287,6 +296,29 @@ export default function CombatPhase() {
       />
       <AssToolProjectiles projectiles={assToolProjectiles} groundY={groundY} />
       <DamageOverlay isInvincible={isInvincible} />
+
+      {/* Cinematic Ultimate Layer */}
+      {ultimatePhase !== 'none' && (
+        <>
+          {/* Gray Overlay */}
+          <div className="absolute inset-0 bg-black/50 z-40 pointer-events-none transition-opacity duration-500" />
+
+          {/* Flying Tool */}
+          <img
+            src="/sprites/tool/ultimateTool.png"
+            alt="Ultimate Attack"
+            className="absolute z-50 drop-shadow-[0_0_50px_rgba(232,121,249,0.8)]"
+            style={{
+              left: ultimatePos.x,
+              top: ultimatePos.y,
+              transform: `translate(-50%, -50%) scale(${ultimateScale})`,
+              width: 150, // Base size
+              height: 150,
+              filter: 'brightness(1.5) saturate(1.5)',
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }

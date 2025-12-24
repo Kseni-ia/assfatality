@@ -11,12 +11,13 @@ export default function HUD() {
     mana,
     maxMana,
     enemyHealth,
-    currentEnemyType
+    currentEnemyType,
+    ultimatePhase
   } = useGameStore()
 
   const isFatalityReady = assMeter >= 100 && gameState === GAME_STATES.COMBAT_PHASE
   const isManaFull = mana >= maxMana
-  const showManaBar = gameState === GAME_STATES.COMBAT_PHASE || gameState === GAME_STATES.COMBAT_INTRO
+  const showManaBar = gameState === GAME_STATES.COMBAT_PHASE
   const showCombatHUD = gameState === GAME_STATES.COMBAT_PHASE || gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.ASS_FATALITY || gameState === GAME_STATES.VICTORY
 
   return (
@@ -145,17 +146,81 @@ export default function HUD() {
 
       {/* --- CENTER OVERLAYS --- */}
 
-      {/* ASS METER (Modernized) */}
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 w-64 md:w-80 flex flex-col items-center">
-        {assMeter > 0 && (
-          <div className={`relative w - full h - 2 rounded - full bg - gray - 900 / 80 backdrop - blur border border - purple - 500 / 30 overflow - hidden ${isFatalityReady ? 'shadow-[0_0_20px_#a855f7]' : ''} `}>
+      {/* ULTIMATE ICON (Refined "Ultimate Tool" Design) */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center z-30 pointer-events-none">
+
+        {/* VISIBILITY UPDATE: Now appears exactly when mana bars appear (Combat Intro & Phase) */}
+        {showManaBar && ultimatePhase === 'none' && (
+          <div className="relative flex items-center justify-center">
+
+            {/* 1. Underlying "Portal" Ground Glow (Only when fully ready) */}
+            {isFatalityReady && (
+              <div className="absolute -bottom-8 w-40 h-12 bg-fuchsia-500/50 rounded-[100%] blur-[20px] animate-pulse" />
+            )}
+
+            {/* 2. God-Ray Aura (Only when fully ready) */}
+            {isFatalityReady && (
+              <div className="absolute w-40 h-40 bg-gradient-to-t from-purple-600 via-fuchsia-500 to-transparent opacity-30 rounded-full blur-xl animate-spin-slow" />
+            )}
+
+            {/* 3. The Icon Container - PUMPING ANIMATION on meter gain */}
             <div
-              className={`absolute inset - y - 0 left - 0 transition - all duration - 300 ${isFatalityReady ? 'bg-gradient-to-r from-purple-500 via-fuchsia-400 to-purple-500 animate-pulse' : 'bg-purple-800'} `}
-              style={{ width: `${assMeter}% ` }}
-            />
+              key={assMeter} // Triggers animation on change
+              className={`relative w-28 h-28 md:w-36 md:h-36 transition-all duration-300 ${isFatalityReady ? 'scale-110 animate-pulse-neon' : assMeter > 0 ? 'animate-bounce-short' : ''}`}
+            >
+
+              {/* Electric Shockwaves (Only when ready) */}
+              {isFatalityReady && (
+                <>
+                  <div className="absolute inset-[-10px] border-4 border-fuchsia-400/30 rounded-full blur-[2px] animate-ping" style={{ animationDuration: '2s' }} />
+                  <div className="absolute inset-[-20px] border-2 border-purple-500/20 rounded-full blur-[4px] animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
+                </>
+              )}
+
+              {/* Inactive Silhouette (Always visible background - GREY) */}
+              <img
+                src="/sprites/tool/ultimateTool.png"
+                alt="Ultimate Frame"
+                className="absolute inset-0 w-full h-full object-contain filter grayscale opacity-50 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]"
+              />
+
+              {/* Filling Active State (The Core - COLORED) */}
+              {assMeter > 0 && (
+                <div className="absolute inset-0 w-full h-full">
+                  <img
+                    src="/sprites/tool/ultimateTool.png"
+                    alt="Ultimate Fill"
+                    className={`absolute inset-0 w-full h-full object-contain transition-all duration-200 ${isFatalityReady
+                      ? 'filter brightness-125 saturate-150 drop-shadow-[0_0_15px_#d946ef] drop-shadow-[0_0_30px_#a855f7]'
+                      : ''
+                      }`}
+                    style={{
+                      clipPath: `inset(${(1 - (Math.min(assMeter, 100) / 100)) * 100}% 0 0 0)`,
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Inner Energy Crackle (Overlay - Only when ready) */}
+              {isFatalityReady && (
+                <div className="absolute inset-0 w-full h-full mix-blend-overlay opacity-70">
+                  <div className="w-full h-full bg-gradient-to-tr from-white/0 via-white/50 to-white/0 animate-pulse" style={{ transform: 'rotate(45deg)' }} />
+                </div>
+              )}
+
+            </div>
+
+            {/* 4. Floating Particles (Sparkles - Only when ready) */}
+            {isFatalityReady && (
+              <>
+                <div className="absolute -top-4 -right-4 w-2 h-2 bg-fuchsia-300 rounded-full animate-bounce shadow-[0_0_10px_#f0abfc]" style={{ animationDuration: '1.5s' }} />
+                <div className="absolute top-10 -left-6 w-1 h-1 bg-purple-300 rounded-full animate-pulse shadow-[0_0_5px_#d8b4fe]" style={{ animationDuration: '0.8s' }} />
+                <div className="absolute -bottom-2 right-8 w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce shadow-[0_0_8px_#f472b6]" style={{ animationDuration: '2.2s', animationDelay: '0.5s' }} />
+              </>
+            )}
+
           </div>
         )}
-        {/* Removed FATALITY READY text as per request */}
       </div>
 
       {/* Combo counter */}
