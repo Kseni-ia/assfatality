@@ -18,6 +18,9 @@ export default function MainMenu() {
       element.msRequestFullscreen()
     }
 
+    // Hack to try and scroll away address bar on mobile
+    window.scrollTo(0, 1)
+
     startGame()
   }
 
