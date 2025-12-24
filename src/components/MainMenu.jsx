@@ -4,10 +4,27 @@ import { useEffect } from 'react'
 
 export default function MainMenu() {
   const { startGame } = useGameStore()
+
+  const handleStart = () => {
+    // Attempt to force full screen on mobile/all devices
+    const element = document.documentElement
+    if (element.requestFullscreen) {
+      element.requestFullscreen().catch((err) => {
+        console.log('Full screen request failed:', err)
+      })
+    } else if (element.webkitRequestFullscreen) {
+      element.webkitRequestFullscreen()
+    } else if (element.msRequestFullscreen) {
+      element.msRequestFullscreen()
+    }
+
+    startGame()
+  }
+
   useEffect(() => {
     const handleKeyPress = (e) => {
       if ((e.key === 'x' || e.key === 'X' || e.key === 'Enter') && !e.repeat) {
-        startGame()
+        handleStart()
       }
     }
 
@@ -113,7 +130,7 @@ export default function MainMenu() {
         {/* Start Prompt */}
         <div className="mt-12 md:mt-20 animate-pulse-smooth relative z-30">
           <button
-            onClick={startGame}
+            onClick={handleStart}
             className="group relative px-6 py-2 md:px-10 md:py-4"
           >
             {/* Glitchy Text Effect */}
