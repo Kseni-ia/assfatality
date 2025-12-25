@@ -98,7 +98,7 @@ export default function MainMenu() {
 
 
       {/* --- Main Content --- */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center pt-24 md:pt-32">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center pt-12 md:pt-16 pb-24">
 
         {/* Massive Logo & Characters */}
         <div className="relative flex justify-center items-center">
@@ -131,7 +131,7 @@ export default function MainMenu() {
         </div>
 
         {/* Start Prompt */}
-        <div className="mt-12 md:mt-20 animate-pulse-smooth relative z-30">
+        <div className="mt-12 md:mt-20 animate-pulse-smooth relative z-40">
           <button
             onClick={handleStart}
             className="group relative px-6 py-2 md:px-10 md:py-4"
