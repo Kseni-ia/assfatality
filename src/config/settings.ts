@@ -20,6 +20,7 @@ export const FRANK_FRAME_SIZE = 128
 // Obstacle phase sizes
 export const OBSTACLE_PLAYER_SIZE = FRANK_FRAME_SIZE * OBSTACLE_SCALE
 export const OBSTACLE_GROUND_Y_OFFSET = 180
+export const OBSTACLE_GROUND_Y_OFFSET_MOBILE = 80 // Smaller offset = lower on screen for mobile
 
 // Combat phase sizes
 export const COMBAT_PLAYER_SIZE = FRANK_FRAME_SIZE * COMBAT_SCALE

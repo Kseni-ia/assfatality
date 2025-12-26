@@ -1,0 +1,18 @@
+{
+    "name": "ASS FATALITY",
+    "short_name": "ASS FATALITY",
+    "description": "The ultimate arcade fighting game",
+    "start_url": "/",
+    "display": "fullscreen",
+    "orientation": "landscape",
+    "background_color": "#0a0015",
+    "theme_color": "#1a0033",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

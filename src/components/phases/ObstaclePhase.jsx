@@ -1,11 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useGameStore, GAME_STATES, PLAYER_STATES } from '../../store/gameStore'
-import { 
-  OBSTACLE_SCALE, 
-  FRANK_FRAME_SIZE, 
+import {
+  OBSTACLE_SCALE,
+  FRANK_FRAME_SIZE,
   OBSTACLE_PLAYER_SIZE,
   OBSTACLE_GROUND_Y_OFFSET,
-  OBSTACLE_VISUAL 
+  OBSTACLE_GROUND_Y_OFFSET_MOBILE,
+  OBSTACLE_VISUAL
 } from '../../config/settings'
 
 const FRANK_FRAMES = 4
@@ -37,6 +38,7 @@ export default function ObstaclePhase() {
     stopDuck,
     updatePlayer,
     updateObstacles,
+    isMobile,
   } = useGameStore()
 
   // Keyboard controls
@@ -66,7 +68,9 @@ export default function ObstaclePhase() {
     const ctx = canvas.getContext('2d')
     const { width, height } = canvas
     const state = useGameStore.getState()
-    const groundY = height - OBSTACLE_GROUND_Y_OFFSET
+    // Use mobile offset when on phone (places elements lower on screen)
+    const groundOffset = state.isMobile ? OBSTACLE_GROUND_Y_OFFSET_MOBILE : OBSTACLE_GROUND_Y_OFFSET
+    const groundY = height - groundOffset
     const scrollSpeed = 5
 
     // Clear and draw background
@@ -116,7 +120,9 @@ export default function ObstaclePhase() {
     return () => clearInterval(interval)
   }, [isJumping, isDucking])
 
-  const groundY = typeof window !== 'undefined' ? window.innerHeight - OBSTACLE_GROUND_Y_OFFSET : 500
+  // Use mobile offset when on phone (places elements lower on screen)
+  const groundOffset = isMobile ? OBSTACLE_GROUND_Y_OFFSET_MOBILE : OBSTACLE_GROUND_Y_OFFSET
+  const groundY = typeof window !== 'undefined' ? window.innerHeight - groundOffset : 500
   const playerX = 120
   const frankSpriteSize = OBSTACLE_PLAYER_SIZE
 

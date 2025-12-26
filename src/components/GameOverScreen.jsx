@@ -1,7 +1,7 @@
 import { useGameStore } from '../store/gameStore'
 
 export default function GameOverScreen() {
-  const { score, reset, startGame } = useGameStore()
+  const { score, reset, startGame, isMobile } = useGameStore()
 
   return (
     <div className="absolute inset-0 bg-gradient-to-b from-[#1a0000] via-[#330000] to-[#1a0000] flex flex-col items-center justify-center z-50">
@@ -20,38 +20,38 @@ export default function GameOverScreen() {
         ))}
       </div>
 
-      {/* Game Over text */}
-      <div className="relative z-10 text-center">
-        <h1 
-          className="text-4xl md:text-6xl font-pixel text-red-500 mb-4"
+      {/* Game Over text - compact for mobile, positioned lower */}
+      <div className={`relative z-10 text-center px-4 ${isMobile ? 'mb-safe' : ''}`}>
+        <h1
+          className={`font-pixel text-red-500 ${isMobile ? 'text-2xl mb-1' : 'text-4xl md:text-6xl mb-4'}`}
           style={{
             textShadow: '0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 40px #ff0000',
           }}
         >
           GAME OVER
         </h1>
-        
-        <div className="text-6xl mb-8 opacity-50">
+
+        <div className={`opacity-50 ${isMobile ? 'text-3xl mb-2' : 'text-6xl mb-8'}`}>
           💀
         </div>
 
-        <p className="text-sm font-pixel text-red-400 mb-2">SCORE</p>
-        <p 
-          className="text-3xl md:text-5xl font-pixel text-red-300 mb-8"
+        <p className={`font-pixel text-red-400 ${isMobile ? 'text-[10px] mb-0.5' : 'text-sm mb-2'}`}>SCORE</p>
+        <p
+          className={`font-pixel text-red-300 ${isMobile ? 'text-xl mb-2' : 'text-3xl md:text-5xl mb-8'}`}
           style={{ textShadow: '0 0 10px #ff6666' }}
         >
           {score.toString().padStart(6, '0')}
         </p>
 
-        <p className="text-xs font-pixel text-red-400/70 mb-12 max-w-xs mx-auto">
+        <p className={`font-pixel text-red-400/70 max-w-xs mx-auto ${isMobile ? 'text-[9px] mb-3 leading-tight' : 'text-xs mb-12'}`}>
           The ASS has been defeated... But legends never truly die.
         </p>
 
-        {/* Buttons */}
-        <div className="flex flex-col gap-4">
+        {/* Buttons - more compact on mobile */}
+        <div className={`flex flex-col ${isMobile ? 'gap-1.5' : 'gap-4'}`}>
           <button
             onClick={startGame}
-            className="px-8 py-4 rounded-lg font-pixel text-white text-sm hover:scale-105 transition-transform"
+            className={`rounded-lg font-pixel text-white hover:scale-105 transition-transform ${isMobile ? 'px-6 py-2.5 text-[11px]' : 'px-8 py-4 text-sm'}`}
             style={{
               background: 'linear-gradient(180deg, #ff4444 0%, #cc0000 100%)',
               boxShadow: '0 4px 0 #660000, 0 6px 20px rgba(255, 0, 0, 0.5)',
@@ -59,10 +59,10 @@ export default function GameOverScreen() {
           >
             TRY AGAIN
           </button>
-          
+
           <button
             onClick={reset}
-            className="px-8 py-3 rounded-lg font-pixel text-red-400 text-xs border border-red-400/50 hover:bg-red-500/20 transition-colors"
+            className={`rounded-lg font-pixel text-red-400 border border-red-400/50 hover:bg-red-500/20 transition-colors ${isMobile ? 'px-6 py-1.5 text-[9px]' : 'px-8 py-3 text-xs'}`}
           >
             MAIN MENU
           </button>

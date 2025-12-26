@@ -3,24 +3,52 @@ import { useEffect } from 'react'
 
 
 export default function MainMenu() {
-  const { startGame } = useGameStore()
+  const { startGame, isMobile } = useGameStore()
 
-  const handleStart = () => {
-    // Attempt to force full screen on mobile/all devices
-    const element = document.documentElement
-    if (element.requestFullscreen) {
-      element.requestFullscreen().catch((err) => {
-        console.log('Full screen request failed:', err)
-      })
-    } else if (element.webkitRequestFullscreen) {
-      element.webkitRequestFullscreen()
-    } else if (element.msRequestFullscreen) {
-      element.msRequestFullscreen()
+  const handleStart = async () => {
+    // Request fullscreen FIRST, before anything else
+    // This must happen in direct response to user gesture
+    try {
+      const element = document.documentElement
+
+      // Standard Fullscreen API
+      if (element.requestFullscreen) {
+        await element.requestFullscreen({ navigationUI: 'hide' })
+        console.log('Fullscreen activated via requestFullscreen')
+      }
+      // Webkit (Safari, older Chrome)
+      else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen()
+        console.log('Fullscreen activated via webkitRequestFullscreen')
+      }
+      // MS Edge/IE
+      else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen()
+        console.log('Fullscreen activated via msRequestFullscreen')
+      }
+      // Mozilla
+      else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen()
+        console.log('Fullscreen activated via mozRequestFullScreen')
+      }
+      else {
+        console.log('Fullscreen API not supported')
+      }
+
+      // Lock orientation to landscape after fullscreen
+      if (screen.orientation && screen.orientation.lock) {
+        try {
+          await screen.orientation.lock('landscape')
+          console.log('Orientation locked to landscape')
+        } catch (e) {
+          console.log('Orientation lock not supported:', e.message)
+        }
+      }
+    } catch (err) {
+      console.log('Fullscreen request failed:', err.message)
     }
 
-    // Hack to try and scroll away address bar on mobile
-    window.scrollTo(0, 1)
-
+    // Start the game after fullscreen attempt
     startGame()
   }
 
@@ -38,7 +66,10 @@ export default function MainMenu() {
   }, [startGame])
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#05000a] font-pixel selection:bg-neon-pink selection:text-white">
+    <div
+      className="fixed inset-0 overflow-hidden bg-[#05000a] font-pixel selection:bg-neon-pink selection:text-white"
+      style={{ height: '100dvh' }}
+    >
 
       {/* --- Animations --- */}
       <style>{`
@@ -98,48 +129,70 @@ export default function MainMenu() {
 
 
       {/* --- Main Content --- */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center pt-12 md:pt-16 pb-24">
+      {/* Using flex-1 and safe-area-aware layout for all screen sizes */}
+      <div
+        className="relative z-10 flex flex-col items-center"
+        style={{
+          height: '100dvh',
+          paddingTop: 'max(env(safe-area-inset-top), 0.5rem)',
+          paddingBottom: 'max(env(safe-area-inset-bottom), 0.5rem)'
+        }}
+      >
 
-        {/* Massive Logo & Characters */}
-        <div className="relative flex justify-center items-center">
+        {/* Frank Character (Left - Background) - positioned relative to full screen */}
+        <img
+          src="/sprites/tool/mainFrank.png"
+          alt="Frank"
+          className={`absolute bottom-[10%] h-[80%] object-contain rotate-6 z-0 animate-slide-in opacity-50 drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
+          style={{
+            animationDelay: '0s',
+            transformOrigin: 'bottom left',
+            left: isMobile ? '4%' : '5%'
+          }}
+        />
 
-          {/* Frank Character (Left - Background) */}
-          <img
-            src="/sprites/tool/mainFrank.png"
-            alt="Frank"
-            className="absolute left-[-70%] md:left-[-65%] bottom-[-45vh] h-[100vh] md:h-[110vh] object-cover md:object-contain rotate-6 z-0 animate-slide-in opacity-60 drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
-            style={{ animationDelay: '0s', transformOrigin: 'bottom left' }}
-          />
+        {/* Boss Character (Right - Background) - positioned relative to full screen */}
+        <img
+          src="/sprites/tool/mainBoss.png"
+          alt="Boss"
+          className={`absolute bottom-[10%] h-[80%] object-contain -rotate-6 z-0 animate-slide-in-right opacity-50 drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
+          style={{
+            animationDelay: '0s',
+            transformOrigin: 'bottom right',
+            right: isMobile ? '10%' : '10%'
+          }}
+        />
 
-          {/* Boss Character (Right - Background) */}
-          <img
-            src="/sprites/tool/mainBoss.png"
-            alt="Boss"
-            className="absolute right-[-50%] md:right-[-45%] bottom-[-45vh] h-[100vh] md:h-[110vh] object-cover md:object-contain -rotate-6 z-0 animate-slide-in-right opacity-60 drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
-            style={{ animationDelay: '0s', transformOrigin: 'bottom right' }}
-          />
+        {/* Logo Container - takes available space */}
+        <div className={`flex-1 relative flex justify-center items-center w-full min-h-0 z-10 ${isMobile ? 'mt-[10%]' : ''}`}>
 
           {/* Glow behind logo */}
           <div className="absolute inset-0 bg-[#ff00ff] blur-[100px] opacity-20 transform scale-75 animate-pulse" />
 
-          {/* Main Logo */}
+          {/* Main Logo - responsive to container, bigger on mobile */}
           <img
             src="/sprites/tool/mainAss.png"
             alt="Ass Fatality Main Logo"
-            className="animate-float-slow relative z-10 w-auto h-[45vh] md:h-[55vh] lg:h-[65vh] object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
+            className={`animate-float-slow relative z-10 w-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.7)] ${isMobile ? 'max-h-[165%]' : 'max-h-[70%]'}`}
           />
         </div>
 
-        {/* Start Prompt */}
-        <div className="mt-12 md:mt-20 animate-pulse-smooth relative z-40">
+        {/* Start Prompt - fixed height at bottom */}
+        <div className="shrink-0 py-2 md:py-6 animate-pulse-smooth relative z-40">
           <button
             onClick={handleStart}
-            className="group relative px-6 py-2 md:px-10 md:py-4"
+            className="group relative px-4 py-1 md:px-10 md:py-4"
           >
-            {/* Glitchy Text Effect */}
-            <span className="text-3xl md:text-5xl font-black text-white tracking-[0.2em] italic relative block"
-              style={{ textShadow: '2px 2px 0px #ff00ff, -2px -2px 0px #00ffff' }}>
-              PRESS <span className="text-neon-pink">X</span> TO START
+            {/* Glitchy Text Effect - responsive text size */}
+            <span
+              className="text-[clamp(1rem,4vw,3rem)] font-black text-white tracking-[0.15em] md:tracking-[0.2em] italic relative block whitespace-nowrap"
+              style={{ textShadow: '2px 2px 0px #ff00ff, -2px -2px 0px #00ffff' }}
+            >
+              {isMobile ? (
+                <>CLICK TO <span className="text-neon-pink">START</span></>
+              ) : (
+                <>PRESS <span className="text-neon-pink">X</span> TO START</>
+              )}
             </span>
           </button>
         </div>
@@ -147,33 +200,38 @@ export default function MainMenu() {
       </div>
 
 
-      {/* --- Footer (Controls & Info) --- */}
-      <div className="absolute bottom-0 w-full bg-black/80 border-t border-white/10 backdrop-blur-md z-50">
-        <div className="max-w-[1920px] mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center text-[10px] md:text-xs text-gray-400 font-mono tracking-wider">
+      {/* --- Footer (Controls & Info) --- Desktop only */}
+      {!isMobile && (
+        <div
+          className="absolute bottom-0 w-full bg-black/80 border-t border-white/10 backdrop-blur-md z-50"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          <div className="max-w-[1920px] mx-auto px-2 md:px-6 py-1.5 md:py-3 flex flex-row justify-between items-center text-[8px] md:text-xs text-gray-400 font-mono tracking-wider">
 
-          {/* Left: Controls */}
-          <div className="flex items-center gap-6 md:gap-12 uppercase">
-            <div className="flex items-center gap-2">
-              <div className="px-2 py-1 border border-white/20 rounded bg-white/5 text-white">A</div>
-              <div className="px-2 py-1 border border-white/20 rounded bg-white/5 text-white">D</div>
-              <span>MOVE</span>
+            {/* Left: Controls */}
+            <div className="flex items-center gap-2 md:gap-12 uppercase">
+              <div className="flex items-center gap-1">
+                <div className="px-1.5 py-0.5 md:px-2 md:py-1 border border-white/20 rounded bg-white/5 text-white text-[8px] md:text-xs">A</div>
+                <div className="px-1.5 py-0.5 md:px-2 md:py-1 border border-white/20 rounded bg-white/5 text-white text-[8px] md:text-xs">D</div>
+                <span>MOVE</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="px-1.5 py-0.5 md:px-2 md:py-1 border border-white/20 rounded bg-white/5 text-white text-[8px] md:text-xs">S</div>
+                <span>DUCK</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="px-1.5 py-0.5 md:px-2 md:py-1 border border-white/20 rounded bg-white/5 text-neon-pink border-neon-pink/50 text-[8px] md:text-xs">X</div>
+                <span className="text-neon-pink">START GAME</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="px-2 py-1 border border-white/20 rounded bg-white/5 text-white">S</div>
-              <span>DUCK</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="px-2 py-1 border border-white/20 rounded bg-white/5 text-neon-pink border-neon-pink/50">X</div>
-              <span className="text-neon-pink">START GAME</span>
-            </div>
-          </div>
 
-          {/* Right: Version */}
-          <div className="hidden md:block opacity-50">
-            ASS FATALITY v2.1.0 // READY
+            {/* Right: Version */}
+            <div className="hidden md:block opacity-50">
+              ASS FATALITY v2.1.0 // READY
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
     </div>
   )
