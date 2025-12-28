@@ -13,31 +13,31 @@ class AudioManager {
         // Config for all sounds
         const soundFiles = {
             // Frank
-            jump: '/frank_jump.mp3',
-            duck: '/frank_duck.mp3',
-            frankAttack: '/frank_attack.mp3',
-            frankDamage: '/frank_damage.mp3',
+            jump: '/audio/frank_jump.mp3',
+            duck: '/audio/frank_duck.mp3',
+            frankAttack: '/audio/frank_attack.mp3',
+            frankDamage: '/audio/frank_damage.mp3',
 
             // Enemies
-            lukasAttack: '/lukas_attack.mp3',
-            lukasHit: '/lukas_attack_hit.mp3',
+            lukasAttack: '/audio/lukas_attack.mp3',
+            lukasHit: '/audio/lukas_attack_hit.mp3',
 
-            ducaAttack: '/duca_attack.mp3',
-            ducaHit: '/duca_attack_hit.mp3',
+            ducaAttack: '/audio/duca_attack.mp3',
+            ducaHit: '/audio/duca_attack_hit.mp3',
 
-            leaderAttack: '/leader_attack.mp3',
-            leaderHit: '/leader_attack_hit.mp3',
+            leaderAttack: '/audio/leader_attack.mp3',
+            leaderHit: '/audio/leader_attack_hit.mp3',
 
-            enemyDeath: '/enemy_death.mp3',
+            enemyDeath: '/audio/enemy_death.mp3',
 
             // Announcer
-            fight: '/announcer_fight.mp3',
-            perfect: '/announcer_perfect.mp3',
-            win: '/announcer_youWin.mp3',
-            lose: '/announcer_youLose.mp3',
+            fight: '/audio/announcer_fight.mp3',
+            perfect: '/audio/announcer_perfect.mp3',
+            win: '/audio/announcer_youWin.mp3',
+            lose: '/audio/announcer_youLose.mp3',
 
             // Music/Other
-            fatality: '/ass fatality raw.mp3'
+            fatality: '/audio/ass fatality raw.mp3'
         };
 
         // Preload sounds
