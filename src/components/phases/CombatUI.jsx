@@ -20,12 +20,21 @@ export function EnemyHealthBar({ currentEnemyType, enemyX, enemyHealth, groundY,
   )
 }
 
-export function Announcements({ showLeaderAnnouncement, showFightText }) {
+export function Announcements({ showLeaderAnnouncement, showBossAnnouncement, showFightText }) {
   if (showLeaderAnnouncement) {
     return (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 100 }}>
         <div className="text-6xl font-bold text-yellow-400 animate-bounce" style={{ fontFamily: '"Press Start 2P", cursive', textShadow: '0 0 20px #ff8800' }}>
           LEADER!
+        </div>
+      </div>
+    )
+  }
+  if (showBossAnnouncement) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 100 }}>
+        <div className="text-6xl font-bold text-purple-500 animate-bounce" style={{ fontFamily: '"Press Start 2P", cursive', textShadow: '0 0 20px #8b00ff, 0 0 40px #ff00ff' }}>
+          BOSS!
         </div>
       </div>
     )
@@ -117,7 +126,7 @@ export function AttackDangerZone({ attackActive, gameState, attackWarning, playe
       {isDuca && (
         <div className="absolute pointer-events-none" style={{
           left: 0,
-          top: groundY - 260,
+          top: groundY - 285,
           width: '100%',
           height: 40,
           overflow: 'hidden',
@@ -241,4 +250,71 @@ export function AssToolProjectiles({ projectiles, groundY }) {
       transition: 'opacity 0.4s ease-in', // Start fading when hit, disappear over ~400px distance
     }} />
   ))
+}
+
+// Boss projectiles - travellSmoke animation (4 frames, 128x128 each = 512x128 spritesheet)
+const BOSS_PROJECTILE_SCALE = 3.0
+
+export function BossProjectiles({ projectiles, groundY }) {
+  if (!projectiles || projectiles.length === 0) return null
+
+  return projectiles.map((proj) => {
+    const isHit = proj.hit
+    const topPosition = groundY - (128 * BOSS_PROJECTILE_SCALE / 2) - 260 // Keep same height
+
+    return (
+      <div key={proj.id} className="absolute pointer-events-none" style={{
+        left: proj.x,
+        top: topPosition,
+        width: 128 * BOSS_PROJECTILE_SCALE,
+        height: 128 * BOSS_PROJECTILE_SCALE,
+        backgroundImage: `url(/sprites/tool/${isHit ? 'smashSmoke' : 'travellSmoke'}.png)`,
+        backgroundPosition: `-${Math.floor(proj.frame) * 128 * BOSS_PROJECTILE_SCALE}px 0`,
+        backgroundSize: `${512 * BOSS_PROJECTILE_SCALE}px ${128 * BOSS_PROJECTILE_SCALE}px`,
+        backgroundRepeat: 'no-repeat',
+        imageRendering: 'pixelated',
+        zIndex: 90,
+        // Purple smoke glow effect
+        filter: 'drop-shadow(0 0 15px #8b00ff) drop-shadow(0 0 25px #ff00ff) brightness(1.2)',
+        // Fade out effect after hitting (like attackTool)
+        opacity: isHit ? 0 : 1,
+        transition: 'opacity 0.4s ease-in',
+      }} />
+    )
+  })
+}
+
+// Boss bot projectiles - LOW attacks using travellSmoke/smashSmoke at ground level
+// Same sprites as HIGH attack but positioned lower (player must jump to avoid)
+const BOSS_BOT_PROJECTILE_SCALE = 3.0
+
+export function BossBotProjectiles({ projectiles, groundY }) {
+  if (!projectiles || projectiles.length === 0) return null
+
+  return projectiles.map((proj) => {
+    const isHit = proj.hit
+    // Position at ground level but a bit higher
+    const topPosition = groundY - (128 * BOSS_BOT_PROJECTILE_SCALE / 2) - 120
+
+    return (
+      <div key={proj.id} className="absolute pointer-events-none" style={{
+        left: proj.x,
+        top: topPosition,
+        width: 128 * BOSS_BOT_PROJECTILE_SCALE,
+        height: 128 * BOSS_BOT_PROJECTILE_SCALE,
+        // Use same sprites as HIGH attack - travellSmoke for travel, smashSmoke for hit
+        backgroundImage: `url(/sprites/tool/${isHit ? 'smashSmoke' : 'travellSmoke'}.png)`,
+        backgroundPosition: `-${Math.floor(proj.frame) * 128 * BOSS_BOT_PROJECTILE_SCALE}px 0`,
+        backgroundSize: `${512 * BOSS_BOT_PROJECTILE_SCALE}px ${128 * BOSS_BOT_PROJECTILE_SCALE}px`,
+        backgroundRepeat: 'no-repeat',
+        imageRendering: 'pixelated',
+        zIndex: 90,
+        // Same purple smoke glow as HIGH attack
+        filter: 'drop-shadow(0 0 15px #8b00ff) drop-shadow(0 0 25px #ff00ff) brightness(1.2)',
+        // Fade out effect after hitting
+        opacity: isHit ? 0 : 1,
+        transition: 'opacity 0.4s ease-in',
+      }} />
+    )
+  })
 }

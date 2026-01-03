@@ -12,6 +12,7 @@ export const ENEMY_SCALES = {
   lukas: 3.2,  // Smaller
   duca: 4.0,   // Standard
   leader: 4.5, // Reduced from 5.8 (Much Bigger)
+  boss: 2.5,   // Final boss - smaller
 }
 
 // Native sprite sizes

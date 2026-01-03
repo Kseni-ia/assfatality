@@ -37,7 +37,7 @@ export default function HUD() {
           </div>
 
           {/* Health Bar Frame */}
-          <div className="relative h-6 md:h-8 bg-gray-900/80 backdrop-blur border border-gray-600 rounded-sm shadow-[0_4px_10px_rgba(0,0,0,0.5)] transform -skew-x-12 origin-top-left overflow-hidden ring-1 ring-white/10">
+          <div className="relative h-6 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform -skew-x-12 origin-top-left overflow-hidden">
             {/* Dark Background Pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMjIyIiAvPgo8cGF0aCBkPSJNMCA0TDQgMFY0SDBaIiBmaWxsPSIjMzMzIiAvPjwvc3ZnPg==')] opacity-50" />
 
@@ -122,7 +122,7 @@ export default function HUD() {
               </div>
 
               {/* Health Bar Frame - Mirrored */}
-              <div className="relative w-full h-6 md:h-8 bg-gray-900/80 backdrop-blur border border-gray-600 rounded-sm shadow-[0_4px_10px_rgba(0,0,0,0.5)] transform skew-x-12 origin-top-right overflow-hidden ring-1 ring-white/10">
+              <div className="relative w-full h-6 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform skew-x-12 origin-top-right overflow-hidden">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMjIyIiAvPgo8cGF0aCBkPSJNMCA0TDQgMFY0SDBaIiBmaWxsPSIjMzMzIiAvPjwvc3ZnPg==')] opacity-50" />
 
                 <div className="absolute inset-0 bg-red-950/50" />

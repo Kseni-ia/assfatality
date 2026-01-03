@@ -22,6 +22,9 @@ export default function DevMenu() {
       case 'leader':
         devJumpTo(2) // Leader is index 2
         break
+      case 'boss':
+        devJumpTo(3) // Boss is index 3
+        break
       case 'victory':
         setGameState(GAME_STATES.VICTORY)
         break
@@ -93,6 +96,12 @@ export default function DevMenu() {
             className="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-xs"
           >
             Fight: Leader
+          </button>
+          <button
+            onClick={() => jumpTo('boss')}
+            className="px-2 py-1 bg-purple-900 hover:bg-purple-800 text-white rounded text-xs"
+          >
+            Fight: Boss
           </button>
           <button
             onClick={() => jumpTo('victory')}

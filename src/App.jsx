@@ -249,7 +249,7 @@ export default function App() {
 
   return (
     <div
-      className={`game-container ${screenShake ? 'animate-shake' : ''} ${slowMotion ? 'transition-all duration-300' : ''}`}
+      className={`game-container ${slowMotion ? 'transition-all duration-300' : ''}`}
       style={{
         filter: slowMotion ? 'saturate(1.5) contrast(1.1)' : 'none',
         // Apply proportional scaling for smaller mobile screens
@@ -262,45 +262,47 @@ export default function App() {
         } : {})
       }}
     >
-      {/* Dev menu - only in development */}
-      {isDev && <DevMenu />}
+      <div className={`w-full h-full ${screenShake ? 'animate-shake' : ''}`}>
+        {/* Dev menu - only in development */}
+        {isDev && <DevMenu />}
 
-      {/* PWA Install Prompt - blocks game until installed (mobile only) */}
-      {isMobile && !isInstalled && <InstallPrompt onInstalled={() => setIsInstalled(true)} />}
+        {/* PWA Install Prompt - blocks game until installed (mobile only) */}
+        {isMobile && !isInstalled && <InstallPrompt onInstalled={() => setIsInstalled(true)} />}
 
-      {/* Portrait Warning Overlay */}
-      {isPortrait && <PortraitWarning />}
+        {/* Portrait Warning Overlay */}
+        {isPortrait && <PortraitWarning />}
 
-      {/* Scanlines overlay */}
-      <div className="absolute inset-0 scanlines z-50 pointer-events-none" />
+        {/* Scanlines overlay */}
+        <div className="absolute inset-0 scanlines z-50 pointer-events-none" />
 
-      {/* Main game content */}
-      {gameState === GAME_STATES.MENU && <MainMenu />}
+        {/* Main game content */}
+        {gameState === GAME_STATES.MENU && <MainMenu />}
 
-      {/* Obstacle Phase - original smaller scale */}
-      {gameState === GAME_STATES.OBSTACLE_PHASE && (
-        <>
-          <ObstaclePhase />
-          <HUD />
-          <MobileControls />
-        </>
-      )}
+        {/* Obstacle Phase - original smaller scale */}
+        {gameState === GAME_STATES.OBSTACLE_PHASE && (
+          <>
+            <ObstaclePhase />
+            <HUD />
+            <MobileControls />
+          </>
+        )}
 
-      {/* Combat Phase - larger scale for fighting */}
-      {(gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.COMBAT_PHASE) && (
-        <>
-          <CombatPhase />
-          <HUD />
-          <MobileControls />
-          <CombatEffects />
-        </>
-      )}
+        {/* Combat Phase - larger scale for fighting */}
+        {(gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.COMBAT_PHASE) && (
+          <>
+            <CombatPhase />
+            <HUD />
+            <MobileControls />
+            <CombatEffects />
+          </>
+        )}
 
-      {gameState === GAME_STATES.ASS_FATALITY && <AssFatalityMinigame />}
+        {gameState === GAME_STATES.ASS_FATALITY && <AssFatalityMinigame />}
 
-      {gameState === GAME_STATES.VICTORY && <VictoryScreen />}
+        {gameState === GAME_STATES.VICTORY && <VictoryScreen />}
 
-      {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
+        {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
+      </div>
     </div>
   )
 }

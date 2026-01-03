@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { PLAYER_HITBOX, OBSTACLE_SIZES } from '../config/settings'
+import { getPlacementConfig } from '../config/characterPlacement'
 import { ENEMY_HEALTH, DAMAGE_VALUES } from '../config/gameConfig'
 import { audioManager } from '../utils/audioManager'
 
@@ -33,10 +34,11 @@ export const ENEMY_TYPES = {
   LUKAS: { id: 'lukas', name: 'Lukas', attackType: 'LOW', speed: 1.0, health: ENEMY_HEALTH.LUKAS, isLeader: false },
   DUCA: { id: 'duca', name: 'Duca', attackType: 'HIGH', speed: 1.0, health: ENEMY_HEALTH.DUCA, isLeader: false },
   LEADER: { id: 'leader', name: 'Leader', attackType: 'MIXED', speed: 1.0, health: ENEMY_HEALTH.LEADER, isLeader: true },
+  BOSS: { id: 'boss', name: 'Boss', attackType: 'MIXED', speed: 1.0, health: ENEMY_HEALTH.BOSS, isLeader: false, isBoss: true },
 }
 
 // Enemy sequence order
-export const ENEMY_SEQUENCE = ['LUKAS', 'DUCA', 'LEADER']
+export const ENEMY_SEQUENCE = ['LUKAS', 'DUCA', 'LEADER', 'BOSS']
 
 const INITIAL_STATE = {
   gameState: GAME_STATES.MENU,
@@ -74,6 +76,10 @@ const INITIAL_STATE = {
   assToolProjectiles: [],
   lastManaRegen: 0,
 
+  // Boss projectiles (travellSmoke for HIGH attacks, attackBossBot for LOW attacks)
+  bossProjectiles: [],
+  bossBotProjectiles: [], // LOW attack projectiles
+
   effects: [],
   particles: [],
 
@@ -97,6 +103,14 @@ const INITIAL_STATE = {
   enemyHealth: 0,
   enemySequenceIndex: 0,
   showLeaderAnnouncement: false,
+  showBossAnnouncement: false, // New: for Boss intro
+  bossAnnouncementStarted: false, // Prevent multiple setTimeout calls
+
+  // Boss appearance animation state
+  bossAppearing: false, // Whether boss is in appear animation
+  bossAppearFrame: 0, // Current frame of appearance animation (0-3)
+  bossAppearStartTime: 0, // Timestamp when appearance started
+  showBossAppearEffect: false, // Show particle/glow effects
 
   // Attack state
   attackActive: false,
@@ -241,28 +255,77 @@ export const useGameStore = create((set, get) => ({
       return
     }
 
-    set({
-      gameState: GAME_STATES.COMBAT_INTRO,
-      playerState: PLAYER_STATES.RUNNING,
-      enemies: [{ ...enemyType, isAttacking: false, attackTimer: 2000, animFrame: 0 }],
-      currentEnemyIndex: 0,
-      currentEnemyType: enemyType,
-      enemyHealth: enemyType.health,
-      enemySequenceIndex: index,
-      // Both start from edges and run to center
-      playerX: -100,
-      enemyX: screenWidth + 100,
-      enemyState: ENEMY_STATES.RUNNING,
-      showFightText: false,
-      showLeaderAnnouncement: enemyType.isLeader,
-      combatTimer: 0,
-      introPhase: enemyType.isLeader ? 'leader_announcement' : 'running',
-      lastAttackCycle: -1,
-      // Reset mana for new fight
-      mana: 0,
-      lastManaRegen: Date.now(),
-      assToolProjectiles: [],
-    })
+    const centerX = screenWidth / 2
+
+    // Get placement config (mobile/desktop)
+    const config = getPlacementConfig(screenWidth)
+    const { playerOffset, enemyOffsetClose, enemyOffsetFar } = config.position
+
+    const playerTargetX = centerX - playerOffset
+
+    // Boss positioned much further back, others closer
+    const isBoss = enemyType.isBoss
+    const enemyTargetOffset = isBoss ? enemyOffsetFar : enemyOffsetClose
+    const enemyTargetX = centerX + enemyTargetOffset
+
+    // Boss appears in place, no running intro
+    if (enemyType.isBoss) {
+      set({
+        gameState: GAME_STATES.COMBAT_INTRO,
+        playerState: PLAYER_STATES.IDLE,
+        enemies: [{ ...enemyType, isAttacking: false, attackTimer: 2000, animFrame: 0 }],
+        currentEnemyIndex: 0,
+        currentEnemyType: enemyType,
+        enemyHealth: enemyType.health,
+        enemySequenceIndex: index,
+        // Boss appears in position, player too
+        playerX: playerTargetX,
+        enemyX: enemyTargetX,
+        enemyState: ENEMY_STATES.IDLE,
+        showFightText: false,
+        showLeaderAnnouncement: false,
+        showBossAnnouncement: true, // Show "BOSS!" text
+        combatTimer: 0,
+        introPhase: 'boss_announcement',
+        lastAttackCycle: -1,
+        mana: 0,
+        lastManaRegen: Date.now(),
+        assToolProjectiles: [],
+        bossProjectiles: [],
+        bossBotProjectiles: [],
+        // Boss appearance animation - starts invisible
+        bossAppearing: false,
+        bossAppearFrame: 0,
+        bossAppearStartTime: 0,
+        showBossAppearEffect: false,
+      })
+    } else {
+      set({
+        gameState: GAME_STATES.COMBAT_INTRO,
+        playerState: PLAYER_STATES.RUNNING,
+        enemies: [{ ...enemyType, isAttacking: false, attackTimer: 2000, animFrame: 0 }],
+        currentEnemyIndex: 0,
+        currentEnemyType: enemyType,
+        enemyHealth: enemyType.health,
+        enemySequenceIndex: index,
+        // Both start from edges and run to center
+        playerX: -100,
+        enemyX: screenWidth + 100,
+        enemyState: ENEMY_STATES.RUNNING,
+        showFightText: false,
+        showLeaderAnnouncement: enemyType.isLeader,
+        showBossAnnouncement: false,
+        combatTimer: 0,
+        introPhase: enemyType.isLeader ? 'leader_announcement' : 'running',
+        lastAttackCycle: -1,
+        // Reset mana for new fight
+        mana: 0,
+        lastManaRegen: Date.now(),
+        assToolProjectiles: [],
+        bossProjectiles: [],
+        bossBotProjectiles: [],
+      })
+    }
   },
 
   // Dev function to jump to a specific enemy fight with proper game state
@@ -274,11 +337,21 @@ export const useGameStore = create((set, get) => ({
 
     if (!enemyType) return
 
+    const centerX = screenWidth / 2
+
+    // Get placement config (mobile/desktop)
+    const config = getPlacementConfig(screenWidth)
+    const { playerOffset, enemyOffsetClose, enemyOffsetFar } = config.position
+
+    const playerTargetX = centerX - playerOffset
+    const isBoss = enemyType.isBoss
+    const enemyTargetOffset = isBoss ? enemyOffsetFar : enemyOffsetClose
+    const enemyTargetX = centerX + enemyTargetOffset
+
     // Set up state as if player progressed naturally
     // Full HP, some score based on progress, proper enemy sequence index
-    set({
+    const baseState = {
       gameState: GAME_STATES.COMBAT_INTRO,
-      playerState: PLAYER_STATES.RUNNING,
       hp: 3, // Full health
       score: enemyIndex * 1000, // Score based on progress
       assMeter: 0, // Start empty
@@ -288,27 +361,49 @@ export const useGameStore = create((set, get) => ({
       enemyHealth: enemyType.health,
       enemySequenceIndex: enemyIndex, // This ensures next enemy is correct after defeating this one
       defeatedEnemies: enemyIndex, // Track how many defeated before this
-      playerX: -100,
-      enemyX: screenWidth + 100,
-      enemyState: ENEMY_STATES.RUNNING,
       showFightText: false,
-      showLeaderAnnouncement: enemyType.isLeader,
-      combatTimer: 0,
-      introPhase: enemyType.isLeader ? 'leader_announcement' : 'running',
       lastAttackCycle: -1,
       mana: 0,
       lastManaRegen: Date.now(),
       assToolProjectiles: [],
+      bossProjectiles: [],
+      bossBotProjectiles: [],
       obstacles: [],
       obstaclesPassed: 0,
       isInvincible: false,
       isBlinking: false,
       attackWarning: null,
       attackActive: false,
-      attackActive: false,
       windupProgress: 0,
       dodgeProcessed: false,
-    })
+    }
+
+    // Boss appears in place, others run in
+    if (enemyType.isBoss) {
+      set({
+        ...baseState,
+        playerState: PLAYER_STATES.IDLE,
+        playerX: playerTargetX,
+        enemyX: enemyTargetX,
+        enemyState: ENEMY_STATES.IDLE,
+        showLeaderAnnouncement: false,
+        showBossAnnouncement: true,
+        combatTimer: 0,
+        introPhase: 'boss_announcement',
+      })
+    } else {
+      set({
+        ...baseState,
+        playerState: PLAYER_STATES.RUNNING,
+        playerX: -100,
+        enemyX: screenWidth + 100,
+        enemyState: ENEMY_STATES.RUNNING,
+        showLeaderAnnouncement: enemyType.isLeader,
+        showBossAnnouncement: false,
+        combatTimer: 0,
+        introPhase: enemyType.isLeader ? 'leader_announcement' : 'running',
+      })
+    }
   },
 
   updateCombatIntro: () => {
@@ -317,13 +412,17 @@ export const useGameStore = create((set, get) => ({
     const centerX = screenWidth / 2
 
     // Target positions - meet in center with characters closer together for combat
-    // With larger sprites (4x scale = 512px), position them so they face each other
-    const playerTargetX = centerX - 350
+    // Get placement config (mobile/desktop)
+    const config = getPlacementConfig(screenWidth)
+    const { playerOffset, enemyOffsetClose, enemyOffsetFar } = config.position
 
-    // Lukas fights closer with his machete
+    const playerTargetX = centerX - playerOffset
+
+    // Lukas, Duca, Leader fight closer
     const { currentEnemyType } = get()
-    const enemyOffset = currentEnemyType?.id === 'leader' ? -150 : 50
-    const enemyTargetX = centerX + enemyOffset
+    const isBoss = currentEnemyType?.isBoss
+    const enemyTargetOffset = isBoss ? enemyOffsetFar : enemyOffsetClose
+    const enemyTargetX = centerX + enemyTargetOffset
 
     // Leader announcement phase
     if (introPhase === 'leader_announcement') {
@@ -334,6 +433,70 @@ export const useGameStore = create((set, get) => ({
           introPhase: 'running',
         })
       }, 2000)
+      return
+    }
+
+    // Boss announcement phase - show "BOSS!" then transition to appear animation
+    if (introPhase === 'boss_announcement') {
+      // Use a flag to prevent multiple setTimeout calls (since this runs every frame)
+      const { bossAnnouncementStarted } = get()
+      if (bossAnnouncementStarted) return
+
+      set({ bossAnnouncementStarted: true })
+
+      // Show "BOSS!" for 2 seconds then start appearance animation
+      setTimeout(() => {
+        set({
+          showBossAnnouncement: false,
+          introPhase: 'boss_appear',
+          bossAppearing: true,
+          bossAppearFrame: 0,
+          bossAppearStartTime: Date.now(),
+          showBossAppearEffect: true,
+        })
+      }, 2000)
+      return
+    }
+
+    // Boss appearance animation phase - play appear animation with effects
+    if (introPhase === 'boss_appear') {
+      const { bossAppearStartTime, bossAppearFrame } = get()
+      const elapsed = Date.now() - bossAppearStartTime
+      const appearDuration = 2500 // 2.5 seconds for appearance
+      const frameCount = 3
+      const frameTime = appearDuration / frameCount // ~625ms per frame
+
+      // Calculate current frame based on elapsed time
+      const newFrame = Math.min(frameCount - 1, Math.floor(elapsed / frameTime))
+
+      if (newFrame !== bossAppearFrame) {
+        set({ bossAppearFrame: newFrame })
+      }
+
+      // Appearance complete - transition to fight text
+      if (elapsed >= appearDuration) {
+        set({
+          bossAppearing: false,
+          showBossAppearEffect: false,
+          showFightText: true,
+          introPhase: 'fight_text',
+          bossAnnouncementStarted: false, // Reset for next time
+        })
+        audioManager.play('fight')
+
+        // Start combat after "FIGHT!" text
+        setTimeout(() => {
+          set({
+            gameState: GAME_STATES.COMBAT_PHASE,
+            showFightText: false,
+            enemyState: ENEMY_STATES.IDLE,
+            combatTimer: Date.now(),
+            introPhase: 'combat',
+            mana: 0,
+            lastManaRegen: Date.now(),
+          })
+        }, 1500)
+      }
       return
     }
 
@@ -431,71 +594,94 @@ export const useGameStore = create((set, get) => ({
         })
         const enemyId = get().currentEnemyType.id
         audioManager.play(enemyId === 'leader' ? 'leaderAttack' : enemyId + 'Attack')
+
+        // Boss spawns a projectile attack - different projectile based on attack type
+        if (currentEnemyType.isBoss) {
+          const { enemyX, bossProjectiles, bossBotProjectiles } = get()
+          const newProjectile = {
+            id: Date.now(),
+            x: enemyX - 100, // Start near boss
+            frame: 0,
+            speed: 20, // Speed toward Frank
+            hit: false,
+          }
+
+          if (attackType === 'HIGH') {
+            // HIGH attack - travellSmoke (player must duck)
+            set({ bossProjectiles: [...bossProjectiles, newProjectile] })
+          } else {
+            // LOW attack - travellSmoke at ground level (player must jump)
+            set({ bossBotProjectiles: [...bossBotProjectiles, newProjectile] })
+          }
+        }
       }
 
       // Continuously check if player gets hit during the ENTIRE active window
       // This ensures landing from a jump during the active window still counts as a hit
-      const { isJumping, isDucking, hp, isInvincible } = get()
-      let playerHit = false
+      // SKIP this for boss - boss uses projectile-based damage in updateBossProjectiles
+      if (!currentEnemyType.isBoss) {
+        const { isJumping, isDucking, hp, isInvincible } = get()
+        let playerHit = false
 
-      if (attackType === 'LOW') {
-        // Ground attack hits if player is on ground (not jumping)
-        if (!isJumping) {
-          playerHit = true
-        }
-      } else if (attackType === 'HIGH') {
-        // High attack hits if player is not ducking
-        if (!isDucking) {
-          playerHit = true
-        }
-      }
-
-      // Dodge Reward Logic
-      const { dodgeProcessed, assMeter, score, comboCount } = get()
-      if (!playerHit && !dodgeProcessed) {
-        // If we are in the active window and NOT hit, check if we are successfully dodging
-        let successfulDodge = false
-        if (attackType === 'LOW' && isJumping) successfulDodge = true
-        if (attackType === 'HIGH' && isDucking) successfulDodge = true
-
-        if (successfulDodge) {
-          const meterGain = 5 // 20 dodges to fill (100 / 5)
-          const newMeter = Math.min(100, assMeter + meterGain)
-          const newCombo = comboCount + 1
-
-          set({
-            dodgeProcessed: true,
-            assMeter: newMeter,
-            score: score + 100 * newCombo,
-            comboCount: newCombo,
-          })
-
-          let comboText = 'AWESOME!'
-          if (newCombo > 1) {
-            const praises = ['GREAT!', 'FANTASTIC!', 'SUPER!', 'WILD!', '', '']
-            const praise = praises[Math.floor(Math.random() * praises.length)]
-            comboText = praise ? `${newCombo}x COMBO! ${praise}` : `${newCombo}x COMBO!`
+        if (attackType === 'LOW') {
+          // Ground attack hits if player is on ground (not jumping)
+          if (!isJumping) {
+            playerHit = true
           }
-          get().addEffect(comboText, true)
+        } else if (attackType === 'HIGH') {
+          // High attack hits if player is not ducking
+          if (!isDucking) {
+            playerHit = true
+          }
         }
-      }
 
-      if (playerHit && !isInvincible) {
-        const newHp = hp - 1
-        set({
-          hp: newHp,
-          assMeter: 0, // Reset meter on hit
-          comboCount: 0, // Reset combo on hit
-          screenShake: true,
-          isInvincible: true,
-        })
-        setTimeout(() => set({ screenShake: false, isInvincible: false }), 500)
+        // Dodge Reward Logic
+        const { dodgeProcessed, assMeter, score, comboCount } = get()
+        if (!playerHit && !dodgeProcessed) {
+          // If we are in the active window and NOT hit, check if we are successfully dodging
+          let successfulDodge = false
+          if (attackType === 'LOW' && isJumping) successfulDodge = true
+          if (attackType === 'HIGH' && isDucking) successfulDodge = true
 
-        if (newHp <= 0) {
-          set({ gameState: GAME_STATES.GAME_OVER })
-          audioManager.play('lose')
-        } else {
-          audioManager.play('frankDamage')
+          if (successfulDodge) {
+            const meterGain = 5 // 20 dodges to fill (100 / 5)
+            const newMeter = Math.min(100, assMeter + meterGain)
+            const newCombo = comboCount + 1
+
+            set({
+              dodgeProcessed: true,
+              assMeter: newMeter,
+              score: score + 100 * newCombo,
+              comboCount: newCombo,
+            })
+
+            let comboText = 'AWESOME!'
+            if (newCombo > 1) {
+              const praises = ['GREAT!', 'FANTASTIC!', 'SUPER!', 'WILD!', '', '']
+              const praise = praises[Math.floor(Math.random() * praises.length)]
+              comboText = praise ? `${newCombo}x COMBO! ${praise}` : `${newCombo}x COMBO!`
+            }
+            get().addEffect(comboText, true)
+          }
+        }
+
+        if (playerHit && !isInvincible) {
+          const newHp = hp - 1
+          set({
+            hp: newHp,
+            assMeter: 0, // Reset meter on hit
+            comboCount: 0, // Reset combo on hit
+            screenShake: true,
+            isInvincible: true,
+          })
+          setTimeout(() => set({ screenShake: false, isInvincible: false }), 500)
+
+          if (newHp <= 0) {
+            set({ gameState: GAME_STATES.GAME_OVER })
+            audioManager.play('lose')
+          } else {
+            audioManager.play('frankDamage')
+          }
         }
       }
     }
@@ -901,6 +1087,123 @@ export const useGameStore = create((set, get) => ({
         audioManager.play(enemyId === 'leader' ? 'leaderHit' : enemyId + 'Hit')
       }
     }
+  },
+
+  // Update boss projectiles (travellSmoke attacks)
+  updateBossProjectiles: () => {
+    const { bossProjectiles, playerX, hp, isJumping, isDucking, gameState, isInvincible, currentEnemyType } = get()
+    if (gameState !== GAME_STATES.COMBAT_PHASE) return
+    if (bossProjectiles.length === 0) return
+    if (!currentEnemyType?.isBoss) return
+
+    // Hit zone at Frank's approximate center
+    const hitZoneX = playerX + 200
+
+    const updatedProjectiles = bossProjectiles.map(proj => {
+      // Always calculate new position moving LEFT
+      const newX = proj.x - (proj.hit ? 15 : proj.speed)
+      const newFrame = proj.hit
+        ? Math.min(proj.frame + 0.3, 3.9) // smashSmoke: don't loop
+        : (proj.frame + 0.2) % 4 // travellSmoke: loop animation
+
+      // If already hit or passed, just keep moving left
+      if (proj.hit || proj.passed) {
+        return { ...proj, x: newX, frame: newFrame }
+      }
+
+      // Check if projectile reached Frank's position
+      if (proj.x <= hitZoneX && newX <= hitZoneX) {
+        // Boss HIGH attack - ducking avoids damage
+        if (!isDucking && !isInvincible) {
+          // Player actually hit - takes damage!
+          const newHp = hp - 1
+          set({
+            hp: newHp,
+            assMeter: 0,
+            comboCount: 0,
+            screenShake: true,
+            isInvincible: true,
+          })
+          setTimeout(() => set({ screenShake: false, isInvincible: false }), 500)
+
+          if (newHp <= 0) {
+            set({ gameState: GAME_STATES.GAME_OVER })
+            audioManager.play('lose')
+          } else {
+            audioManager.play('frankDamage')
+          }
+
+          // Mark as hit - keep same x, start smashSmoke animation, continues left
+          return { ...proj, x: newX, frame: 0, hit: true }
+        }
+
+        // Frank dodged - projectile passes through
+        return { ...proj, x: newX, frame: newFrame, passed: true }
+      }
+
+      return { ...proj, x: newX, frame: newFrame }
+    }).filter(proj => proj !== null && proj.x > -400) // Remove when off-screen left
+
+    set({ bossProjectiles: updatedProjectiles })
+  },
+
+  // Update boss bot projectiles (attackBossBot LOW attacks - player must jump)
+  updateBossBotProjectiles: () => {
+    const { bossBotProjectiles, playerX, hp, isJumping, isDucking, gameState, isInvincible, currentEnemyType } = get()
+    if (gameState !== GAME_STATES.COMBAT_PHASE) return
+    if (bossBotProjectiles.length === 0) return
+    if (!currentEnemyType?.isBoss) return
+
+    // Hit zone at Frank's approximate center (same as HIGH attack)
+    const hitZoneX = playerX + 200
+
+    const updatedProjectiles = bossBotProjectiles.map(proj => {
+      // Always calculate new position moving LEFT
+      const newX = proj.x - (proj.hit ? 15 : proj.speed)
+      // 4 frame animation for attackBossBot
+      const newFrame = proj.hit
+        ? Math.min(proj.frame + 0.3, 3.9) // Impact: don't loop
+        : (proj.frame + 0.2) % 4 // Travel: loop animation
+
+      // If already hit or passed, just keep moving left
+      if (proj.hit || proj.passed) {
+        return { ...proj, x: newX, frame: newFrame }
+      }
+
+      // Check if projectile reached Frank's position
+      if (proj.x <= hitZoneX && newX <= hitZoneX) {
+        // Boss LOW attack - jumping avoids damage
+        if (!isJumping && !isInvincible) {
+          // Player actually hit - takes damage!
+          const newHp = hp - 1
+          set({
+            hp: newHp,
+            assMeter: 0,
+            comboCount: 0,
+            screenShake: true,
+            isInvincible: true,
+          })
+          setTimeout(() => set({ screenShake: false, isInvincible: false }), 500)
+
+          if (newHp <= 0) {
+            set({ gameState: GAME_STATES.GAME_OVER })
+            audioManager.play('lose')
+          } else {
+            audioManager.play('frankDamage')
+          }
+
+          // Mark as hit - stays at impact position with hit animation
+          return { ...proj, x: newX, frame: 0, hit: true }
+        }
+
+        // Frank jumped over - projectile passes through
+        return { ...proj, x: newX, frame: newFrame, passed: true }
+      }
+
+      return { ...proj, x: newX, frame: newFrame }
+    }).filter(proj => proj !== null && proj.x > -400) // Remove when off-screen left
+
+    set({ bossBotProjectiles: updatedProjectiles })
   },
 
   // Obstacles
