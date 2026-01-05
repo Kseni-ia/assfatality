@@ -98,8 +98,12 @@ export default function ObstaclePhase() {
     if (!canvas) return
 
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
+      // If portrait (height > width), we are in "forced landscape" mode via CSS rotation
+      // So effectively, the game width is the window height, and game height is window width
+      const isPortrait = window.innerHeight > window.innerWidth
+
+      canvas.width = isPortrait ? window.innerHeight : window.innerWidth
+      canvas.height = isPortrait ? window.innerWidth : window.innerHeight
     }
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
@@ -122,7 +126,9 @@ export default function ObstaclePhase() {
 
   // Use mobile offset when on phone (places elements lower on screen)
   const groundOffset = isMobile ? OBSTACLE_GROUND_Y_OFFSET_MOBILE : OBSTACLE_GROUND_Y_OFFSET
-  const groundY = typeof window !== 'undefined' ? window.innerHeight - groundOffset : 500
+  const isPortrait = typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
+  const effectiveHeight = isPortrait ? window.innerWidth : window.innerHeight
+  const groundY = effectiveHeight - groundOffset
   const playerX = 120
   const frankSpriteSize = OBSTACLE_PLAYER_SIZE
 

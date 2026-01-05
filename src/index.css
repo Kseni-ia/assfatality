@@ -162,6 +162,21 @@
   background: #0a0015;
 }
 
+/* Force landscape on portrait mobile devices */
+@media screen and (orientation: portrait) and (max-width: 960px) {
+  .game-container {
+    transform: rotate(90deg) translateY(-100%);
+    transform-origin: top left;
+    width: 100dvh;
+    height: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    z-index: 9999;
+  }
+}
+
 .game-canvas {
   position: absolute;
   top: 0;

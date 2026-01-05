@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { useGameStore, GAME_STATES } from './store/gameStore'
 import MainMenu from './components/MainMenu'
 import InstallPrompt from './components/InstallPrompt'
-import HUD from './components/HUD'
+import GameHUD from './components/GameHUD'
 import MobileControls from './components/MobileControls'
 import AssFatalityMinigame from './components/AssFatalityMinigame'
 import VictoryScreen from './components/VictoryScreen'
 import GameOverScreen from './components/GameOverScreen'
 import DevMenu from './components/DevMenu'
-import PortraitWarning from './components/PortraitWarning'
+
 
 // Phase components
 import ObstaclePhase from './components/phases/ObstaclePhase'
@@ -23,7 +23,6 @@ const BASELINE_HEIGHT = 430
 
 export default function App() {
   const { gameState, setMobile, screenShake, slowMotion, isMobile } = useGameStore()
-  const [isPortrait, setIsPortrait] = useState(false)
   const [mobileScale, setMobileScale] = useState(1)
   const [isInstalled, setIsInstalled] = useState(() => {
     // Check if already running as standalone PWA
@@ -43,13 +42,11 @@ export default function App() {
       const portrait = window.innerHeight > window.innerWidth
 
       setMobile(isMobileDevice)
-      // Only show warning if it's a mobile device and in portrait
-      setIsPortrait(isMobileDevice && portrait)
+      // In portrait, we use width (the shorter dimension) as the "height" of our game view
+      const effectiveHeight = Math.min(window.innerWidth, window.innerHeight)
 
-      // Calculate scale for smaller mobile screens in landscape
-      // If viewport height < baseline (430px), scale down proportionally
-      if (isMobileDevice && !portrait && window.innerHeight < BASELINE_HEIGHT) {
-        const scale = window.innerHeight / BASELINE_HEIGHT
+      if (isMobileDevice && effectiveHeight < BASELINE_HEIGHT) {
+        const scale = effectiveHeight / BASELINE_HEIGHT
         setMobileScale(scale)
       } else {
         setMobileScale(1)
@@ -252,56 +249,61 @@ export default function App() {
       className={`game-container ${slowMotion ? 'transition-all duration-300' : ''}`}
       style={{
         filter: slowMotion ? 'saturate(1.5) contrast(1.1)' : 'none',
-        // Apply proportional scaling for smaller mobile screens
-        // Scale down the entire view while expanding dimensions to fill viewport
-        ...(mobileScale < 1 && isMobile ? {
-          transform: `scale(${mobileScale})`,
-          transformOrigin: 'top left',
-          width: `${100 / mobileScale}%`,
-          height: `${100 / mobileScale}dvh`,
-        } : {})
       }}
     >
-      <div className={`w-full h-full ${screenShake ? 'animate-shake' : ''}`}>
-        {/* Dev menu - only in development */}
-        {isDev && <DevMenu />}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          ...(mobileScale < 1 ? {
+            transform: `scale(${mobileScale})`,
+            transformOrigin: 'top left',
+            width: `${100 / mobileScale}%`,
+            height: `${100 / mobileScale}%`,
+          } : {})
+        }}
+      >
+        <div className={`w-full h-full ${screenShake ? 'animate-shake' : ''}`}>
+          {/* Dev menu - only in development */}
+          {isDev && <DevMenu />}
 
-        {/* PWA Install Prompt - blocks game until installed (mobile only) */}
-        {isMobile && !isInstalled && <InstallPrompt onInstalled={() => setIsInstalled(true)} />}
+          {/* PWA Install Prompt - blocks game until installed (mobile only) */}
+          {isMobile && !isInstalled && <InstallPrompt onInstalled={() => setIsInstalled(true)} />}
 
-        {/* Portrait Warning Overlay */}
-        {isPortrait && <PortraitWarning />}
+          {/* Portrait Warning Overlay - REMOVED */}
 
-        {/* Scanlines overlay */}
-        <div className="absolute inset-0 scanlines z-50 pointer-events-none" />
 
-        {/* Main game content */}
-        {gameState === GAME_STATES.MENU && <MainMenu />}
+          {/* Scanlines overlay */}
+          <div className="absolute inset-0 scanlines z-50 pointer-events-none" />
 
-        {/* Obstacle Phase - original smaller scale */}
-        {gameState === GAME_STATES.OBSTACLE_PHASE && (
-          <>
-            <ObstaclePhase />
-            <HUD />
-            <MobileControls />
-          </>
-        )}
+          {/* Main game content */}
+          {gameState === GAME_STATES.MENU && <MainMenu />}
 
-        {/* Combat Phase - larger scale for fighting */}
-        {(gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.COMBAT_PHASE) && (
-          <>
-            <CombatPhase />
-            <HUD />
-            <MobileControls />
-            <CombatEffects />
-          </>
-        )}
+          {/* Obstacle Phase - original smaller scale */}
+          {gameState === GAME_STATES.OBSTACLE_PHASE && (
+            <>
+              <ObstaclePhase />
+              <GameHUD />
+              <MobileControls />
+            </>
+          )}
 
-        {gameState === GAME_STATES.ASS_FATALITY && <AssFatalityMinigame />}
+          {/* Combat Phase - larger scale for fighting */}
+          {(gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.COMBAT_PHASE) && (
+            <>
+              <CombatPhase />
+              <GameHUD />
+              <MobileControls />
+              <CombatEffects />
+            </>
+          )}
 
-        {gameState === GAME_STATES.VICTORY && <VictoryScreen />}
+          {gameState === GAME_STATES.ASS_FATALITY && <AssFatalityMinigame />}
 
-        {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
+          {gameState === GAME_STATES.VICTORY && <VictoryScreen />}
+
+          {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
+        </div>
       </div>
     </div>
   )

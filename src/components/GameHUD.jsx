@@ -1,6 +1,6 @@
 import { useGameStore, GAME_STATES } from '../store/gameStore'
 
-export default function HUD() {
+export default function GameHUD() {
   const {
     hp,
     score,
@@ -24,20 +24,20 @@ export default function HUD() {
     <div className="absolute top-0 left-0 right-0 p-4 pointer-events-none z-40 h-full font-sans">
 
       {/* --- REIMAGINED TOP HUD (Modern Mortal Kombat Style) --- */}
-      <div className="flex justify-between items-start w-full px-2 pt-2">
+      <div className="flex justify-between items-start w-full px-1 pt-1 md:px-2 md:pt-2">
 
         {/* LEFT: FRANK (Player 1) */}
         <div className="flex flex-col w-[42%] max-w-[800px] relative group">
           {/* Info Text Row */}
-          <div className="flex justify-between items-end mb-1 px-2 relative z-10">
-            <span className="text-white font-black text-lg md:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
-              <span className="text-emerald-400 text-2xl">⚡</span> FRANK
+          <div className="flex justify-between items-end mb-0.5 md:mb-1 px-1 md:px-2 relative z-10">
+            <span className="text-white font-black text-xs md:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-1 md:gap-2">
+              <span className="text-emerald-400 text-sm md:text-2xl">⚡</span> FRANK
             </span>
-            <span className="text-xs font-bold text-gray-300 bg-black/50 px-2 py-0.5 rounded backdrop-blur-sm">SCORE: {score.toLocaleString()}</span>
+            <span className="text-[8px] md:text-xs font-bold text-gray-300 bg-black/50 px-1 md:px-2 py-0.5 rounded backdrop-blur-sm">SCORE: {score.toLocaleString()}</span>
           </div>
 
           {/* Health Bar Frame */}
-          <div className="relative h-6 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform -skew-x-12 origin-top-left overflow-hidden">
+          <div className="relative h-3 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform -skew-x-12 origin-top-left overflow-hidden">
             {/* Dark Background Pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMjIyIiAvPgo8cGF0aCBkPSJNMCA0TDQgMFY0SDBaIiBmaWxsPSIjMzMzIiAvPjwvc3ZnPg==')] opacity-50" />
 
@@ -59,13 +59,13 @@ export default function HUD() {
 
           {/* MANA HEARTS (Replacement for Bar) */}
           {showManaBar && (
-            <div className="flex absolute top-6 -left-16 z-30 pointer-events-none">
+            <div className="flex absolute top-4 md:top-6 -left-4 md:-left-16 z-30 pointer-events-none">
               {[...Array(6)].map((_, i) => {
                 const fillAmount = Math.max(0, Math.min(1, mana - i))
                 return (
                   <div
                     key={i}
-                    className={`relative w-32 h-32 md:w-56 md:h-56 shrink-0 ${i > 0 ? '-ml-14 md:-ml-36' : ''}`}
+                    className={`relative w-8 h-8 md:w-56 md:h-56 shrink-0 ${i > 0 ? '-ml-3 md:-ml-36' : ''}`}
                     style={{ zIndex: 6 - i }}
                   >
                     {/* Grey Background Heart */}
@@ -89,19 +89,19 @@ export default function HUD() {
         </div>
 
         {/* CENTER: VS & TIMER */}
-        <div className="flex flex-col items-center justify-start -mt-1 z-20">
+        <div className="flex flex-col items-center justify-start -mt-0.5 md:-mt-1 z-20">
           <div className="relative">
-            <div className="text-amber-400 font-black text-3xl md:text-4xl italic tracking-tighter drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]" style={{ textShadow: '0 0 20px rgba(251, 191, 36, 0.6)' }}>
+            <div className="text-amber-400 font-black text-lg md:text-4xl italic tracking-tighter drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]" style={{ textShadow: '0 0 20px rgba(251, 191, 36, 0.6)' }}>
               VS
             </div>
           </div>
 
           {/* Round Indicators (Modern Pills) */}
-          <div className="flex gap-1 mt-2 p-1 bg-black/40 backdrop-blur rounded-full">
+          <div className="flex gap-0.5 md:gap-1 mt-1 md:mt-2 p-0.5 md:p-1 bg-black/40 backdrop-blur rounded-full">
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className={`w - 2 h - 2 rounded - full transition - all duration - 300 ${i < defeatedEnemies
+                className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all duration-300 ${i < defeatedEnemies
                   ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e] scale-110'
                   : 'bg-gray-600'
                   } `}
@@ -114,15 +114,15 @@ export default function HUD() {
         <div className="flex flex-col w-[42%] max-w-[800px] items-end relative group">
           {showCombatHUD && currentEnemyType ? (
             <>
-              <div className="flex justify-between items-end mb-1 px-2 w-full relative z-10 flex-row-reverse">
-                <span className="text-white font-black text-lg md:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-right flex items-center gap-2 flex-row-reverse">
-                  <span className="text-rose-500">{currentEnemyType.name}</span> <span className="text-rose-600 text-2xl">💀</span>
+              <div className="flex justify-between items-end mb-0.5 md:mb-1 px-1 md:px-2 w-full relative z-10 flex-row-reverse">
+                <span className="text-white font-black text-xs md:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-right flex items-center gap-1 md:gap-2 flex-row-reverse">
+                  <span className="text-rose-500">{currentEnemyType.name}</span> <span className="text-rose-600 text-sm md:text-2xl">💀</span>
                 </span>
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Enemy</span>
+                <span className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest">Enemy</span>
               </div>
 
               {/* Health Bar Frame - Mirrored */}
-              <div className="relative w-full h-6 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform skew-x-12 origin-top-right overflow-hidden">
+              <div className="relative w-full h-3 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform skew-x-12 origin-top-right overflow-hidden">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMjIyIiAvPgo8cGF0aCBkPSJNMCA0TDQgMFY0SDBaIiBmaWxsPSIjMzMzIiAvPjwvc3ZnPg==')] opacity-50" />
 
                 <div className="absolute inset-0 bg-red-950/50" />
@@ -137,9 +137,7 @@ export default function HUD() {
                 <div className="absolute inset-x-0 top-0 h-[40%] bg-gradient-to-b from-white/30 to-transparent pointer-events-none" />
               </div>
             </>
-          ) : (
-            <div className="text-gray-500 font-bold text-sm mt-4 bg-black/30 px-3 py-1 rounded backdrop-blur">WAITING FOR CHALLENGER...</div>
-          )}
+          ) : null}
         </div>
 
       </div>
@@ -166,7 +164,7 @@ export default function HUD() {
             {/* 3. The Icon Container - PUMPING ANIMATION on meter gain */}
             <div
               key={assMeter} // Triggers animation on change
-              className={`relative w-28 h-28 md:w-36 md:h-36 transition-all duration-300 ${isFatalityReady ? 'scale-110 animate-pulse-neon' : assMeter > 0 ? 'animate-bounce-short' : ''}`}
+              className={`relative w-20 h-20 md:w-36 md:h-36 transition-all duration-300 ${isFatalityReady ? 'scale-110 animate-pulse-neon' : assMeter > 0 ? 'animate-bounce-short' : ''}`}
             >
 
               {/* Electric Shockwaves (Only when ready) */}
@@ -226,10 +224,10 @@ export default function HUD() {
       {/* Combo counter */}
       {comboCount > 1 && (
         <div className="absolute top-40 right-4 animate-pulse pointer-events-none transform -rotate-6">
-          <p className="text-4xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-[0_4px_0_rgba(0,0,0,1)]">
+          <p className="text-2xl md:text-4xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-[0_4px_0_rgba(0,0,0,1)]">
             {comboCount} HIT
           </p>
-          <p className="text-sm font-bold text-yellow-400 tracking-widest text-right">COMBO!</p>
+          <p className="text-[10px] md:text-sm font-bold text-yellow-400 tracking-widest text-right">COMBO!</p>
         </div>
       )}
     </div>

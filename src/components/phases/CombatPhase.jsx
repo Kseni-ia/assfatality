@@ -134,14 +134,16 @@ export default function CombatPhase() {
     // Use config scale for shadow size
     const config = state.isMobile ? PLACEMENT_CONFIG.mobile : PLACEMENT_CONFIG.desktop
 
-    const frankScale = config.scale.frank
-    const frankSize = FRANK_FRAME_SIZE * frankScale
-    drawPlayerShadow(ctx, state.playerX, groundY, frankSize)
+    if (!state.isMobile) {
+      const frankScale = config.scale.frank
+      const frankSize = FRANK_FRAME_SIZE * frankScale
+      drawPlayerShadow(ctx, state.playerX, groundY, frankSize)
 
-    // Draw Enemy Shadow
-    const currentScale = (state.currentEnemyType && config.scale[state.currentEnemyType.id]) || COMBAT_SCALE
-    const currentEnemySize = 128 * currentScale
-    drawEnemyShadow(ctx, state.enemyX, groundY, currentEnemySize)
+      // Draw Enemy Shadow
+      const currentScale = (state.currentEnemyType && config.scale[state.currentEnemyType.id]) || COMBAT_SCALE
+      const currentEnemySize = 128 * currentScale
+      drawEnemyShadow(ctx, state.enemyX, groundY, currentEnemySize)
+    }
 
     animationRef.current = requestAnimationFrame(gameLoop)
   }, [])
@@ -151,9 +153,15 @@ export default function CombatPhase() {
     if (!canvas) return
 
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-      setMobile(window.innerWidth < PLACEMENT_CONFIG.mobileBreakpoint)
+      // If valid landscape (width > height), use normally
+      // If portrait (height > width), we are in "forced landscape" mode via CSS rotation
+      // So effectively, the game width is the window height, and game height is window width
+      const isPortrait = window.innerHeight > window.innerWidth
+
+      canvas.width = isPortrait ? window.innerHeight : window.innerWidth
+      canvas.height = isPortrait ? window.innerWidth : window.innerHeight
+
+      setMobile(canvas.width < PLACEMENT_CONFIG.mobileBreakpoint)
     }
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
@@ -203,7 +211,9 @@ export default function CombatPhase() {
     }
   }, [enemyHitTimestamp])
 
-  const groundY = typeof window !== 'undefined' ? window.innerHeight - COMBAT_GROUND_Y_OFFSET : 500
+  const isPortrait = typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
+  const effectiveHeight = isPortrait ? window.innerWidth : window.innerHeight
+  const groundY = effectiveHeight - COMBAT_GROUND_Y_OFFSET
   // Determine configuration based on mode
   const config = isMobile ? PLACEMENT_CONFIG.mobile : PLACEMENT_CONFIG.desktop
 

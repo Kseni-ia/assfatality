@@ -68,7 +68,7 @@ export default function MainMenu() {
   return (
     <div
       className="fixed inset-0 overflow-hidden bg-[#05000a] font-pixel selection:bg-neon-pink selection:text-white"
-      style={{ height: '100dvh' }}
+      style={{ height: '100%' }}
     >
 
       {/* --- Animations --- */}
@@ -133,7 +133,7 @@ export default function MainMenu() {
       <div
         className="relative z-10 flex flex-col items-center"
         style={{
-          height: '100dvh',
+          height: '100%',
           paddingTop: 'max(env(safe-area-inset-top), 0.5rem)',
           paddingBottom: 'max(env(safe-area-inset-bottom), 0.5rem)'
         }}

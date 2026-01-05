@@ -2,18 +2,19 @@ import { useCallback, useRef } from 'react'
 import { useGameStore, GAME_STATES } from '../store/gameStore'
 
 export default function MobileControls() {
-  const { 
-    isMobile, 
-    jump, 
-    holdJump, 
-    releaseJump, 
-    duck, 
-    stopDuck, 
-    assMeter, 
+  const {
+    isMobile,
+    jump,
+    holdJump,
+    releaseJump,
+    duck,
+    stopDuck,
+    assMeter,
     triggerAssFatality,
-    gameState 
+    shootAssTool,
+    gameState
   } = useGameStore()
-  
+
   const jumpIntervalRef = useRef(null)
   const isFatalityReady = assMeter >= 100 && gameState === GAME_STATES.COMBAT_PHASE
 
@@ -44,6 +45,11 @@ export default function MobileControls() {
     stopDuck()
   }, [stopDuck])
 
+  const handleAttack = useCallback((e) => {
+    e.preventDefault()
+    shootAssTool()
+  }, [shootAssTool])
+
   const handleFatality = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -54,38 +60,61 @@ export default function MobileControls() {
 
   return (
     <div className="absolute inset-0 z-30 pointer-events-none">
-      {/* Left side - DUCK */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1/2 pointer-events-auto"
-        onTouchStart={handleDuckStart}
-        onTouchEnd={handleDuckEnd}
-        onMouseDown={handleDuckStart}
-        onMouseUp={handleDuckEnd}
-        onMouseLeave={handleDuckEnd}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-neon-purple/20 to-transparent flex items-center justify-center">
-          <div className="text-center opacity-50">
-            <p className="text-4xl mb-2">👇</p>
-            <p className="text-xs font-pixel text-neon-purple">DUCK</p>
-          </div>
-        </div>
+      {/* Left side - DUCK BUTTON */}
+      <div className="absolute bottom-24 left-8 pointer-events-auto">
+        <button
+          className="w-24 h-24 active:scale-95 transition-transform opacity-70 active:opacity-100"
+          onTouchStart={handleDuckStart}
+          onTouchEnd={handleDuckEnd}
+          onMouseDown={handleDuckStart}
+          onMouseUp={handleDuckEnd}
+          onMouseLeave={handleDuckEnd}
+        >
+          {/* Outer Ring Glow */}
+          <div className="absolute inset-[-10px] rounded-full bg-purple-500/20 blur-xl opacity-0 active:opacity-100 transition-opacity" />
+          <img
+            src="/sprites/tool/duckP.svg"
+            alt="Duck"
+            className="w-full h-full drop-shadow-[0_0_15px_rgba(168,85,247,0.8)] filter brightness-110 active:brightness-125"
+          />
+        </button>
       </div>
 
-      {/* Right side - JUMP */}
-      <div
-        className="absolute right-0 top-0 bottom-0 w-1/2 pointer-events-auto"
-        onTouchStart={handleJumpStart}
-        onTouchEnd={handleJumpEnd}
-        onMouseDown={handleJumpStart}
-        onMouseUp={handleJumpEnd}
-        onMouseLeave={handleJumpEnd}
-      >
-        <div className="absolute inset-0 bg-gradient-to-l from-neon-cyan/20 to-transparent flex items-center justify-center">
-          <div className="text-center opacity-50">
-            <p className="text-4xl mb-2">👆</p>
-            <p className="text-xs font-pixel text-neon-cyan">JUMP</p>
-          </div>
-        </div>
+      {/* Right side - JUMP & ATTACK BUTTONS */}
+      <div className="absolute bottom-24 right-8 pointer-events-auto flex items-end gap-6">
+
+        {/* ATTACK Button (Inner) */}
+        <button
+          className="w-20 h-20 mb-2 active:scale-95 transition-transform opacity-70 active:opacity-100"
+          onTouchStart={handleAttack}
+          onMouseDown={handleAttack}
+        >
+          {/* Outer Ring Glow */}
+          <div className="absolute inset-[-10px] rounded-full bg-pink-500/20 blur-xl opacity-0 active:opacity-100 transition-opacity" />
+          <img
+            src="/sprites/tool/attackP.svg"
+            alt="Attack"
+            className="w-full h-full drop-shadow-[0_0_15px_rgba(236,72,153,0.8)] filter brightness-110 active:brightness-125"
+          />
+        </button>
+
+        {/* JUMP Button (Outer/Corner) */}
+        <button
+          className="w-24 h-24 active:scale-95 transition-transform opacity-70 active:opacity-100"
+          onTouchStart={handleJumpStart}
+          onTouchEnd={handleJumpEnd}
+          onMouseDown={handleJumpStart}
+          onMouseUp={handleJumpEnd}
+          onMouseLeave={handleJumpEnd}
+        >
+          {/* Outer Ring Glow */}
+          <div className="absolute inset-[-10px] rounded-full bg-cyan-500/20 blur-xl opacity-0 active:opacity-100 transition-opacity" />
+          <img
+            src="/sprites/tool/jumpP.svg"
+            alt="Jump"
+            className="w-full h-full drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] filter brightness-110 active:brightness-125"
+          />
+        </button>
       </div>
 
       {/* Center - ASS FATALITY button */}
