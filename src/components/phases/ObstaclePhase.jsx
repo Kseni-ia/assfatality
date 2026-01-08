@@ -129,7 +129,9 @@ export default function ObstaclePhase() {
   const isPortrait = typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
   const effectiveHeight = isPortrait ? window.innerWidth : window.innerHeight
   const groundY = effectiveHeight - groundOffset
-  const playerX = 120
+  // Center player better on mobile, fixed position on desktop
+  const effectiveWidth = isPortrait ? window.innerHeight : window.innerWidth
+  const playerX = isMobile ? Math.max(80, effectiveWidth * 0.12) : 120
   const frankSpriteSize = OBSTACLE_PLAYER_SIZE
 
   const getFrankSprite = () => {

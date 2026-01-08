@@ -20,6 +20,8 @@ export default function MobileControls() {
 
   const handleJumpStart = useCallback((e) => {
     e.preventDefault()
+    // Prevent multiple simultaneous jumps (race condition on touch devices)
+    if (jumpIntervalRef.current) return
     jump()
     jumpIntervalRef.current = setInterval(() => {
       holdJump()
