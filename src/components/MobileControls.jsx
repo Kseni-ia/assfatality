@@ -10,6 +10,7 @@ export default function MobileControls() {
     duck,
     stopDuck,
     assMeter,
+    mana,
     triggerAssFatality,
     shootAssTool,
     gameState
@@ -17,6 +18,7 @@ export default function MobileControls() {
 
   const jumpIntervalRef = useRef(null)
   const isFatalityReady = assMeter >= 100 && gameState === GAME_STATES.COMBAT_PHASE
+  const canAttack = mana >= 1
 
   const handleJumpStart = useCallback((e) => {
     e.preventDefault()
@@ -65,57 +67,90 @@ export default function MobileControls() {
       {/* Left side - DUCK BUTTON */}
       <div className="absolute bottom-24 left-8 pointer-events-auto">
         <button
-          className="w-24 h-24 active:scale-95 transition-transform opacity-70 active:opacity-100"
+          className="cursor-pointer select-none bg-gray-800/90 px-4 py-4 rounded-xl text-white tracking-wider shadow-xl 
+                     hover:bg-gray-700 active:scale-95 transition-all border-2 border-purple-500/50
+                     drop-shadow-[0_0_15px_rgba(168,85,247,0.6)]"
           onTouchStart={handleDuckStart}
           onTouchEnd={handleDuckEnd}
           onMouseDown={handleDuckStart}
           onMouseUp={handleDuckEnd}
           onMouseLeave={handleDuckEnd}
         >
-          {/* Outer Ring Glow */}
-          <div className="absolute inset-[-10px] rounded-full bg-purple-500/20 blur-xl opacity-0 active:opacity-100 transition-opacity" />
-          <img
-            src="/sprites/tool/duckP.svg"
-            alt="Duck"
-            className="w-full h-full drop-shadow-[0_0_15px_rgba(168,85,247,0.8)] filter brightness-110 active:brightness-125"
-          />
+          <svg
+            className="w-12 h-12"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            ></path>
+          </svg>
+          <span className="text-xs font-bold mt-1 block">DUCK</span>
         </button>
       </div>
 
       {/* Right side - JUMP & ATTACK BUTTONS */}
-      <div className="absolute bottom-24 right-8 pointer-events-auto flex items-end gap-6">
+      <div className="absolute bottom-24 right-8 pointer-events-auto flex items-end gap-8">
 
         {/* ATTACK Button (Inner) */}
         <button
-          className="w-20 h-20 mb-2 active:scale-95 transition-transform opacity-70 active:opacity-100"
+          className={`cursor-pointer select-none px-3 py-3 rounded-xl tracking-wider shadow-xl 
+                     active:scale-95 transition-all border-2
+                     ${canAttack
+              ? 'bg-gray-800/90 text-white border-pink-500/50 drop-shadow-[0_0_15px_rgba(236,72,153,0.6)] hover:bg-gray-700'
+              : 'bg-gray-600/50 text-gray-400 border-gray-500/30'}`}
           onTouchStart={handleAttack}
           onMouseDown={handleAttack}
+          disabled={!canAttack}
         >
-          {/* Outer Ring Glow */}
-          <div className="absolute inset-[-10px] rounded-full bg-pink-500/20 blur-xl opacity-0 active:opacity-100 transition-opacity" />
-          <img
-            src="/sprites/tool/attackP.svg"
-            alt="Attack"
-            className="w-full h-full drop-shadow-[0_0_15px_rgba(236,72,153,0.8)] filter brightness-110 active:brightness-125"
-          />
+          <svg
+            className="w-10 h-10"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            ></path>
+          </svg>
+          <span className="text-xs font-bold mt-1 block">ATK</span>
         </button>
 
         {/* JUMP Button (Outer/Corner) */}
         <button
-          className="w-24 h-24 active:scale-95 transition-transform opacity-70 active:opacity-100"
+          className="cursor-pointer select-none bg-gray-800/90 px-4 py-4 rounded-xl text-white tracking-wider shadow-xl 
+                     hover:bg-gray-700 active:scale-95 transition-all 
+                     border-2 border-cyan-500/50 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]"
           onTouchStart={handleJumpStart}
           onTouchEnd={handleJumpEnd}
           onMouseDown={handleJumpStart}
           onMouseUp={handleJumpEnd}
           onMouseLeave={handleJumpEnd}
         >
-          {/* Outer Ring Glow */}
-          <div className="absolute inset-[-10px] rounded-full bg-cyan-500/20 blur-xl opacity-0 active:opacity-100 transition-opacity" />
-          <img
-            src="/sprites/tool/jumpP.svg"
-            alt="Jump"
-            className="w-full h-full drop-shadow-[0_0_15px_rgba(34,211,238,0.8)] filter brightness-110 active:brightness-125"
-          />
+          <svg
+            className="w-12 h-12"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            ></path>
+          </svg>
+          <span className="text-xs font-bold mt-1 block">JUMP</span>
         </button>
       </div>
 

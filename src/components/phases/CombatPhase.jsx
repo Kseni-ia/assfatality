@@ -110,21 +110,24 @@ export default function CombatPhase() {
     ctx.fillStyle = '#0a0015'
     ctx.fillRect(0, 0, width, height)
 
-    state.updatePlayer(0)
+    // PAUSE LOGIC: If paused, skip state updates but continue rendering
+    if (!state.isPaused) {
+      state.updatePlayer(0)
 
-    if (state.gameState === GAME_STATES.COMBAT_INTRO) {
-      state.updateCombatIntro()
-    }
-    if (state.gameState === GAME_STATES.COMBAT_PHASE) {
-      state.updateCombat()
-      state.tickAssMeter()
-      state.tickMana()
-      state.updateAssToolProjectiles()
-      state.updateBossProjectiles()
-      state.updateBossBotProjectiles()
-    }
-    if (state.gameState === GAME_STATES.ASS_FATALITY) {
-      state.updateUltimate()
+      if (state.gameState === GAME_STATES.COMBAT_INTRO) {
+        state.updateCombatIntro()
+      }
+      if (state.gameState === GAME_STATES.COMBAT_PHASE) {
+        state.updateCombat()
+        state.tickAssMeter()
+        state.tickMana()
+        state.updateAssToolProjectiles()
+        state.updateBossProjectiles()
+        state.updateBossBotProjectiles()
+      }
+      if (state.gameState === GAME_STATES.ASS_FATALITY) {
+        state.updateUltimate()
+      }
     }
 
     // Draw background (static for combat)
@@ -135,14 +138,7 @@ export default function CombatPhase() {
     const config = state.isMobile ? PLACEMENT_CONFIG.mobile : PLACEMENT_CONFIG.desktop
 
     if (!state.isMobile) {
-      const frankScale = config.scale.frank
-      const frankSize = FRANK_FRAME_SIZE * frankScale
-      drawPlayerShadow(ctx, state.playerX, groundY, frankSize)
-
-      // Draw Enemy Shadow
-      const currentScale = (state.currentEnemyType && config.scale[state.currentEnemyType.id]) || COMBAT_SCALE
-      const currentEnemySize = 128 * currentScale
-      drawEnemyShadow(ctx, state.enemyX, groundY, currentEnemySize)
+      // Shadows removed as per request
     }
 
     animationRef.current = requestAnimationFrame(gameLoop)
@@ -542,6 +538,7 @@ export default function CombatPhase() {
         enemySpriteSize={enemySpriteSize}
         windupProgress={windupProgress}
         currentEnemyType={currentEnemyType}
+        isMobile={isMobile}
       />
       <AttackDangerZone
         attackActive={attackActive}
@@ -555,9 +552,9 @@ export default function CombatPhase() {
         isJumping={isJumping}
         currentEnemyType={currentEnemyType}
       />
-      <AssToolProjectiles projectiles={assToolProjectiles} groundY={groundY} />
-      <BossProjectiles projectiles={bossProjectiles} groundY={groundY} />
-      <BossBotProjectiles projectiles={bossBotProjectiles} groundY={groundY} />
+      <AssToolProjectiles projectiles={assToolProjectiles} groundY={groundY} isMobile={isMobile} />
+      <BossProjectiles projectiles={bossProjectiles} groundY={groundY} isMobile={isMobile} />
+      <BossBotProjectiles projectiles={bossBotProjectiles} groundY={groundY} isMobile={isMobile} />
       <DamageOverlay isInvincible={isInvincible} />
 
       {/* Cinematic Ultimate Layer */}
@@ -609,18 +606,4 @@ function drawGround(ctx, width, groundY) {
   ctx.fillRect(0, groundY, width, 5)
 }
 
-function drawPlayerShadow(ctx, playerX, groundY, size) {
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-  const safeSize = size || COMBAT_PLAYER_SIZE
-  ctx.beginPath()
-  ctx.ellipse(playerX + safeSize / 2, groundY - 5, safeSize / 4, 20, 0, 0, Math.PI * 2)
-  ctx.fill()
-}
 
-function drawEnemyShadow(ctx, enemyX, groundY, size) {
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-  const safeSize = size || 128 * COMBAT_SCALE
-  ctx.beginPath()
-  ctx.ellipse(enemyX + safeSize / 2, groundY - 5, safeSize / 4, 20, 0, 0, Math.PI * 2)
-  ctx.fill()
-}

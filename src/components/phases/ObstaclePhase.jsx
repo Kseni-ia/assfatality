@@ -77,17 +77,19 @@ export default function ObstaclePhase() {
     ctx.fillStyle = '#0a0015'
     ctx.fillRect(0, 0, width, height)
 
-    state.updatePlayer(timestamp - lastTimeRef.current)
-    state.updateObstacles(scrollSpeed)
-    lastTimeRef.current = timestamp
+    // PAUSE LOGIC
+    if (!state.isPaused) {
+      state.updatePlayer(timestamp - lastTimeRef.current)
+      state.updateObstacles(scrollSpeed)
+      // Update background scroll
+      bgScrollRef.current += scrollSpeed
+    }
 
-    // Update background scroll
-    bgScrollRef.current += scrollSpeed
+    lastTimeRef.current = timestamp
 
     // Draw background
     drawBackground(ctx, width, height, timestamp, bgImageRef.current, bgScrollRef.current, groundY)
     drawGround(ctx, width, groundY)
-    drawPlayerShadow(ctx, groundY)
     drawObstacles(ctx, state.obstacles, groundY)
 
     animationRef.current = requestAnimationFrame(gameLoop)
@@ -187,13 +189,7 @@ function drawGround(ctx, width, groundY) {
   ctx.fillRect(0, groundY, width, 10)
 }
 
-function drawPlayerShadow(ctx, groundY) {
-  const playerX = 120
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-  ctx.beginPath()
-  ctx.ellipse(playerX + OBSTACLE_PLAYER_SIZE / 2, groundY - 5, 35 * OBSTACLE_SCALE, 12 * OBSTACLE_SCALE, 0, 0, Math.PI * 2)
-  ctx.fill()
-}
+
 
 function drawObstacles(ctx, obstacles, groundY) {
   obstacles.forEach(obs => {
@@ -201,9 +197,9 @@ function drawObstacles(ctx, obstacles, groundY) {
     const vw = visual.width
     const vh = visual.height
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-    ctx.fillRect(obs.x + 5, groundY - 5, vw, 10)
+    // Shadow (Removed)
+    // ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+    // ctx.fillRect(obs.x + 5, groundY - 5, vw, 10)
 
     const gradient = ctx.createLinearGradient(obs.x, groundY - vh, obs.x, groundY)
 

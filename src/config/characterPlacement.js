@@ -13,7 +13,7 @@ export const PLACEMENT_CONFIG = {
             lukas: 1.9,
             duca: 2.3,
             leader: 2.3,
-            boss: 1.5,
+            boss: 2,
         },
         // Vertical Alignment (Higher number = character moves DOWN)
         // Adjust this if characters look like they are floating or buried
@@ -22,7 +22,7 @@ export const PLACEMENT_CONFIG = {
             lukas: 115,
             duca: 130,
             leader: 130,
-            boss: 0,
+            boss: 90,
         },
         // Combat Distances (Distance from center of screen)
         position: {
@@ -39,7 +39,7 @@ export const PLACEMENT_CONFIG = {
             lukas: 3.2,
             duca: 4.0,
             leader: 4.0,
-            boss: 2.5,
+            boss: 2.6,
         },
         // Vertical Alignment
         verticalOffset: {

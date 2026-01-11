@@ -123,6 +123,9 @@ const INITIAL_STATE = {
   startUltimateTime: 0,
   ultimatePos: { x: 0, y: 0 },
   ultimateScale: 1,
+
+  // Dev Pause
+  isPaused: false,
 }
 
 export const useGameStore = create((set, get) => ({
@@ -144,6 +147,8 @@ export const useGameStore = create((set, get) => ({
   setGameState: (gameState) => set({ gameState }),
 
   setMobile: (isMobile) => set({ isMobile }),
+
+  togglePause: () => set((state) => ({ isPaused: !state.isPaused })),
 
   // Restart level after losing a heart (keeps hp and score)
   restartLevel: () => {

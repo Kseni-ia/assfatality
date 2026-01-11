@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useGameStore, GAME_STATES } from './store/gameStore'
 import MainMenu from './components/MainMenu'
 import InstallPrompt from './components/InstallPrompt'
+import OrientationLockOverlay from './components/OrientationLockOverlay'
 import GameHUD from './components/GameHUD'
 import MobileControls from './components/MobileControls'
 import AssFatalityMinigame from './components/AssFatalityMinigame'
@@ -24,6 +25,12 @@ const BASELINE_HEIGHT = 430
 export default function App() {
   const { gameState, setMobile, screenShake, slowMotion, isMobile } = useGameStore()
   const [mobileScale, setMobileScale] = useState(1)
+  const [isPortrait, setIsPortrait] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerHeight > window.innerWidth
+    }
+    return false
+  })
   const [isInstalled, setIsInstalled] = useState(() => {
     // Check if already running as standalone PWA
     if (typeof window !== 'undefined') {
@@ -42,6 +49,7 @@ export default function App() {
       const portrait = window.innerHeight > window.innerWidth
 
       setMobile(isMobileDevice)
+      setIsPortrait(portrait)
       // In portrait, we use width (the shorter dimension) as the "height" of our game view
       const effectiveHeight = Math.min(window.innerWidth, window.innerHeight)
 
@@ -270,39 +278,44 @@ export default function App() {
           {/* PWA Install Prompt - blocks game until installed (mobile only) */}
           {isMobile && !isInstalled && <InstallPrompt onInstalled={() => setIsInstalled(true)} />}
 
-          {/* Portrait Warning Overlay - REMOVED */}
+          {/* Orientation Lock Warning - shows when phone needs to be rotated (mobile only) */}
+          {isMobile && isInstalled && isPortrait && <OrientationLockOverlay />}
 
-
-          {/* Scanlines overlay */}
-          <div className="absolute inset-0 scanlines z-50 pointer-events-none" />
-
-          {/* Main game content */}
-          {gameState === GAME_STATES.MENU && <MainMenu />}
-
-          {/* Obstacle Phase - original smaller scale */}
-          {gameState === GAME_STATES.OBSTACLE_PHASE && (
+          {/* Only render game content if NOT in portrait mode on mobile, or on desktop */}
+          {(!isMobile || !isPortrait) && (
             <>
-              <ObstaclePhase />
-              <GameHUD />
-              <MobileControls />
+              {/* Scanlines overlay */}
+              <div className="absolute inset-0 scanlines z-50 pointer-events-none" />
+
+              {/* Main game content */}
+              {gameState === GAME_STATES.MENU && <MainMenu />}
+
+              {/* Obstacle Phase - original smaller scale */}
+              {gameState === GAME_STATES.OBSTACLE_PHASE && (
+                <>
+                  <ObstaclePhase />
+                  <GameHUD />
+                  <MobileControls />
+                </>
+              )}
+
+              {/* Combat Phase - larger scale for fighting */}
+              {(gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.COMBAT_PHASE) && (
+                <>
+                  <CombatPhase />
+                  <GameHUD />
+                  <MobileControls />
+                  <CombatEffects />
+                </>
+              )}
+
+              {gameState === GAME_STATES.ASS_FATALITY && <AssFatalityMinigame />}
+
+              {gameState === GAME_STATES.VICTORY && <VictoryScreen />}
+
+              {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
             </>
           )}
-
-          {/* Combat Phase - larger scale for fighting */}
-          {(gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.COMBAT_PHASE) && (
-            <>
-              <CombatPhase />
-              <GameHUD />
-              <MobileControls />
-              <CombatEffects />
-            </>
-          )}
-
-          {gameState === GAME_STATES.ASS_FATALITY && <AssFatalityMinigame />}
-
-          {gameState === GAME_STATES.VICTORY && <VictoryScreen />}
-
-          {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
         </div>
       </div>
     </div>

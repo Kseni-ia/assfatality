@@ -7,13 +7,16 @@ export default function GameHUD() {
     assMeter,
     gameState,
     comboCount,
-    defeatedEnemies,
+
     mana,
     maxMana,
     enemyHealth,
     currentEnemyType,
-    ultimatePhase
+    ultimatePhase,
+    isPaused,
+    togglePause
   } = useGameStore()
+
 
   const isFatalityReady = assMeter >= 100 && gameState === GAME_STATES.COMBAT_PHASE
   const isManaFull = mana >= maxMana
@@ -21,23 +24,32 @@ export default function GameHUD() {
   const showCombatHUD = gameState === GAME_STATES.COMBAT_PHASE || gameState === GAME_STATES.COMBAT_INTRO || gameState === GAME_STATES.ASS_FATALITY || gameState === GAME_STATES.VICTORY
 
   return (
-    <div className="absolute top-0 left-0 right-0 p-4 pointer-events-none z-40 h-full font-sans">
+    <div className="absolute top-0 left-0 right-0 p-1 lg:p-4 pointer-events-none z-40 h-full font-sans">
+
 
       {/* --- REIMAGINED TOP HUD (Modern Mortal Kombat Style) --- */}
-      <div className="flex justify-between items-start w-full px-1 pt-1 md:px-2 md:pt-2">
-
+      <div className="flex justify-between items-start w-full px-1 pt-1 lg:px-2 lg:pt-2">
         {/* LEFT: FRANK (Player 1) */}
-        <div className="flex flex-col w-[42%] max-w-[800px] relative group">
+        <div className="flex flex-col-reverse left-2 lg:flex-col-reverse lg:left-2 w-[25%] lg:w-[42%] max-w-[800px] relative group">
           {/* Info Text Row */}
-          <div className="flex justify-between items-end mb-0.5 md:mb-1 px-1 md:px-2 relative z-10">
-            <span className="text-white font-black text-xs md:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-1 md:gap-2">
-              <span className="text-emerald-400 text-sm md:text-2xl">⚡</span> FRANK
-            </span>
-            <span className="text-[8px] md:text-xs font-bold text-gray-300 bg-black/50 px-1 md:px-2 py-0.5 rounded backdrop-blur-sm">SCORE: {score.toLocaleString()}</span>
-          </div>
+          <div className="flex justify-between items-end mt-0.5 lg:mt-0 px-1 lg:px-2 relative z-10">
 
+            <span className="text-white font-black text-[8px] lg:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-1 lg:gap-2">
+
+              <span className="text-emerald-400 text-[8px] lg:text-2xl">⚡</span> FRANK
+            </span>
+            {/* Score removed as requested */}
+            {/* <span className="text-[8px] lg:text-xs font-bold text-gray-300 bg-black/50 px-1 lg:px-2 py-0.5 rounded backdrop-blur-sm">SCORE: {score.toLocaleString()}</span> */}
+          </div>
           {/* Health Bar Frame */}
-          <div className="relative h-3 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform -skew-x-12 origin-top-left overflow-hidden">
+          <div className="relative h-3 left-2 mt-1 lg:h-8 lg:left-2 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-none lg:shadow-[0_0_30px_rgba(0,0,0,0.8)] transform -skew-x-12 origin-top-left overflow-hidden">
+
+
+
+
+
+
+
             {/* Dark Background Pattern */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMjIyIiAvPgo8cGF0aCBkPSJNMCA0TDQgMFY0SDBaIiBmaWxsPSIjMzMzIiAvPjwvc3ZnPg==')] opacity-50" />
 
@@ -59,14 +71,23 @@ export default function GameHUD() {
 
           {/* MANA HEARTS (Replacement for Bar) */}
           {showManaBar && (
-            <div className="flex absolute top-4 md:top-6 -left-4 md:-left-16 z-30 pointer-events-none">
+            <div className="flex absolute -top-4 -left-14 lg:-left-20 lg:mt-4 z-30 pointer-events-none">
               {[...Array(6)].map((_, i) => {
+
                 const fillAmount = Math.max(0, Math.min(1, mana - i))
                 return (
                   <div
                     key={i}
-                    className={`relative w-8 h-8 md:w-56 md:h-56 shrink-0 ${i > 0 ? '-ml-3 md:-ml-36' : ''}`}
+                    className={`relative w-40 h-40 lg:w-56 lg:h-56 shrink-0 ${i > 0 ? '-ml-28 lg:-ml-36' : ''}`}
                     style={{ zIndex: 6 - i }}
+
+
+
+
+
+
+
+
                   >
                     {/* Grey Background Heart */}
                     <img
@@ -96,33 +117,29 @@ export default function GameHUD() {
             </div>
           </div>
 
-          {/* Round Indicators (Modern Pills) */}
-          <div className="flex gap-0.5 md:gap-1 mt-1 md:mt-2 p-0.5 md:p-1 bg-black/40 backdrop-blur rounded-full">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all duration-300 ${i < defeatedEnemies
-                  ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e] scale-110'
-                  : 'bg-gray-600'
-                  } `}
-              />
-            ))}
-          </div>
+
         </div>
 
         {/* RIGHT: ENEMY (Player 2) */}
-        <div className="flex flex-col w-[42%] max-w-[800px] items-end relative group">
+        <div className="flex flex-col-reverse right-3 lg:flex-col-reverse lg:right-3 w-[25%] lg:w-[42%] max-w-[800px] items-end relative group">
           {showCombatHUD && currentEnemyType ? (
             <>
-              <div className="flex justify-between items-end mb-0.5 md:mb-1 px-1 md:px-2 w-full relative z-10 flex-row-reverse">
-                <span className="text-white font-black text-xs md:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-right flex items-center gap-1 md:gap-2 flex-row-reverse">
-                  <span className="text-rose-500">{currentEnemyType.name}</span> <span className="text-rose-600 text-sm md:text-2xl">💀</span>
-                </span>
-                <span className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest">Enemy</span>
-              </div>
 
+              <div className="flex justify-between items-end mt-0.5 lg:mb-1 lg:mt-0 px-1 lg:px-2 w-full relative z-10 flex-row-reverse">
+                <span className="text-white font-black text-[8px] lg:text-xl tracking-wider uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-right flex items-center gap-1 lg:gap-2 flex-row-reverse">
+                  <span className="text-rose-500">{currentEnemyType.name}</span> <span className="text-rose-600 text-[8px] lg:text-2xl">💀</span>
+                </span>
+                <span className="text-[8px] lg:text-xs font-bold text-gray-400 uppercase tracking-widest">Enemy</span>
+              </div>
               {/* Health Bar Frame - Mirrored */}
-              <div className="relative w-full h-3 md:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] transform skew-x-12 origin-top-right overflow-hidden">
+              <div className="relative w-full h-3 mt-1 lg:mt-0 lg:h-8 bg-gray-900/60 backdrop-blur-xl rounded-full shadow-none lg:shadow-[0_0_30px_rgba(0,0,0,0.8)] transform skew-x-12 origin-top-right overflow-hidden">
+
+
+
+
+
+
+
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMjIyIiAvPgo8cGF0aCBkPSJNMCA0TDQgMFY0SDBaIiBmaWxsPSIjMzMzIiAvPjwvc3ZnPg==')] opacity-50" />
 
                 <div className="absolute inset-0 bg-red-950/50" />
@@ -145,7 +162,7 @@ export default function GameHUD() {
       {/* --- CENTER OVERLAYS --- */}
 
       {/* ULTIMATE ICON (Refined "Ultimate Tool" Design) */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center z-30 pointer-events-none">
+      <div className="absolute top-4 lg:top-8 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center z-30 pointer-events-none">
 
         {/* VISIBILITY UPDATE: Now appears exactly when mana bars appear (Combat Intro & Phase) */}
         {showManaBar && ultimatePhase === 'none' && (
@@ -230,6 +247,16 @@ export default function GameHUD() {
           <p className="text-[10px] md:text-sm font-bold text-yellow-400 tracking-widest text-right">COMBO!</p>
         </div>
       )}
+      {/* DEV PAUSE BUTTON */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto z-50">
+        <button
+          onClick={togglePause}
+          className={`px-4 py-2 text-sm font-bold rounded-full border-2 shadow-lg ${isPaused ? 'bg-red-500 border-red-700 text-white animate-pulse' : 'bg-gray-800/80 border-gray-500 text-gray-300 hover:bg-gray-700'}`}
+        >
+          {isPaused ? 'RESUME' : 'PAUSE GAME'}
+        </button>
+      </div>
     </div>
   )
 }
+

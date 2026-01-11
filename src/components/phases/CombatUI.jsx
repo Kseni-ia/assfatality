@@ -10,10 +10,10 @@ export function EnemyHealthBar({ currentEnemyType, enemyX, enemyHealth, groundY,
 
   return (
     <div className="absolute pointer-events-none" style={{ left: enemyX + enemySpriteSize * 0.2, top: barTop, width: enemySpriteSize * 0.6 }}>
-      <div className="text-center text-white text-[10px] mb-1 opacity-90 shadow-sm" style={{ fontFamily: '"Press Start 2P", cursive' }}>
+      <div className="text-center text-white text-[8px] mb-0.5 opacity-90 shadow-sm" style={{ fontFamily: '"Press Start 2P", cursive' }}>
         {currentEnemyType.name}
       </div>
-      <div className="bg-gray-800 h-2 md:h-3 rounded overflow-hidden border border-gray-600">
+      <div className="bg-gray-800 h-1.5 lg:h-3 rounded overflow-hidden border border-gray-600">
         <div className="h-full bg-red-500 transition-all duration-200" style={{ width: `${(enemyHealth / currentEnemyType.health) * 100}%` }} />
       </div>
     </div>
@@ -51,11 +51,12 @@ export function Announcements({ showLeaderAnnouncement, showBossAnnouncement, sh
   return null
 }
 
-export function AttackLoadingBar({ attackWarning, attackActive, gameState, enemyX, groundY, enemySpriteSize, windupProgress, currentEnemyType }) {
+export function AttackLoadingBar({ attackWarning, attackActive, gameState, enemyX, groundY, enemySpriteSize, windupProgress, currentEnemyType, isMobile }) {
   if (!attackWarning || attackActive || gameState !== GAME_STATES.COMBAT_PHASE) return null
 
   // Positioned lower to avoid the top HUD
-  const barTop = groundY - enemySpriteSize * 0.8
+  // Lower it even more on mobile to be closer to characters
+  const barTop = groundY - enemySpriteSize * (isMobile ? 0.6 : 0.85)
 
   // For Leader, hide the prompt until the bar is halfway full
   const showPrompt = currentEnemyType?.id !== 'leader' || windupProgress > 0.5
@@ -63,16 +64,17 @@ export function AttackLoadingBar({ attackWarning, attackActive, gameState, enemy
   return (
     <div className="absolute pointer-events-none" style={{ left: enemyX + enemySpriteSize * 0.2, top: barTop, width: enemySpriteSize * 0.6, zIndex: 60 }}>
       <div className={`text-lg font-bold text-center mb-1 transition-opacity duration-200 ${showPrompt ? 'opacity-100' : 'opacity-0'}`} style={{ fontFamily: '"Press Start 2P", cursive', color: '#ffff00', textShadow: '0 0 5px #ffff00' }}>
-        {attackWarning.type === 'HIGH' ? '⬇️ DUCK!' : '⬆️ JUMP!'}
+        {attackWarning.type === 'HIGH' ? 'DUCK!' : 'JUMP!'}
       </div>
-      <div className="relative h-3 md:h-4 rounded overflow-hidden" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid #ffff00' }}>
+      <div className="relative h-3 lg:h-4 rounded overflow-hidden" style={{ background: 'rgba(0,0,0,0.8)', border: '2px solid #ffff00' }}>
         <div className="h-full" style={{
+
           width: `${windupProgress * 100}%`,
           background: windupProgress < 0.6 ? 'linear-gradient(90deg, #00ff00, #88ff00)' : windupProgress < 0.85 ? 'linear-gradient(90deg, #ffff00, #ffaa00)' : 'linear-gradient(90deg, #ff6600, #ff0000)',
           transition: 'width 0.05s linear',
         }} />
       </div>
-      <div className="text-center mt-0.5 text-[10px]" style={{ fontFamily: '"Press Start 2P", cursive', color: windupProgress > 0.85 ? '#ff0000' : '#fff' }}>
+      <div className="text-center mt-0.5 text-[10px]" style={{ fontFamily: '"Press Start 2P", cursive', color: windupProgress > 0.85 ? '#ff0000' : '#000000ff' }}>
         {Math.round(windupProgress * 100)}%
       </div>
     </div>
@@ -229,11 +231,12 @@ export function AttackDangerZone({ attackActive, gameState, attackWarning, playe
 // Much smaller scale for attack projectile - compact and highly visible
 const ASS_TOOL_SCALE = 2.0
 
-export function AssToolProjectiles({ projectiles, groundY }) {
+export function AssToolProjectiles({ projectiles, groundY, isMobile }) {
   return projectiles.map((proj) => (
     <div key={proj.id} className="absolute pointer-events-none" style={{
       left: proj.x,
-      top: groundY + proj.y - (128 * ASS_TOOL_SCALE / 2) + 60, // Centered on Frank (with slight adjustment down)
+      // Adjust offset for mobile: Frank is smaller and lower, so we need to push the projectile down more
+      top: groundY + proj.y - (128 * ASS_TOOL_SCALE / 2) + (isMobile ? 180 : 60),
       width: 128 * ASS_TOOL_SCALE, // Corrected frame width (half of 256)
       height: 128 * ASS_TOOL_SCALE,
       backgroundImage: `url(/sprites/tool/${proj.hit ? 'attackTool' : 'assTool'}.png)`,
@@ -255,12 +258,13 @@ export function AssToolProjectiles({ projectiles, groundY }) {
 // Boss projectiles - travellSmoke animation (4 frames, 128x128 each = 512x128 spritesheet)
 const BOSS_PROJECTILE_SCALE = 3.0
 
-export function BossProjectiles({ projectiles, groundY }) {
+export function BossProjectiles({ projectiles, groundY, isMobile }) {
   if (!projectiles || projectiles.length === 0) return null
 
   return projectiles.map((proj) => {
     const isHit = proj.hit
-    const topPosition = groundY - (128 * BOSS_PROJECTILE_SCALE / 2) - 260 // Keep same height
+    // Mobile: much lower (120px offset) vs Desktop (260px offset)
+    const topPosition = groundY - (128 * BOSS_PROJECTILE_SCALE / 2) - (isMobile ? 120 : 260)
 
     return (
       <div key={proj.id} className="absolute pointer-events-none" style={{
@@ -288,13 +292,14 @@ export function BossProjectiles({ projectiles, groundY }) {
 // Same sprites as HIGH attack but positioned lower (player must jump to avoid)
 const BOSS_BOT_PROJECTILE_SCALE = 3.0
 
-export function BossBotProjectiles({ projectiles, groundY }) {
+export function BossBotProjectiles({ projectiles, groundY, isMobile }) {
   if (!projectiles || projectiles.length === 0) return null
 
   return projectiles.map((proj) => {
     const isHit = proj.hit
     // Position at ground level but a bit higher
-    const topPosition = groundY - (128 * BOSS_BOT_PROJECTILE_SCALE / 2) - 120
+    // Mobile: much lower (20px offset) vs Desktop (120px offset)
+    const topPosition = groundY - (128 * BOSS_BOT_PROJECTILE_SCALE / 2) - (isMobile ? 20 : 120)
 
     return (
       <div key={proj.id} className="absolute pointer-events-none" style={{
