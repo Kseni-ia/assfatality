@@ -9,20 +9,22 @@ export const PLACEMENT_CONFIG = {
     mobile: {
         // Character Sizes (Multiplier of original size)
         scale: {
-            frank: 2.4,
+            frank: 2.0,
+            frankBoss: 2.0, // Separate scale for Boss fight (Mobile)
             lukas: 1.9,
             duca: 2.3,
             leader: 2.3,
-            boss: 2,
+            boss: 1.7,
         },
         // Vertical Alignment (Higher number = character moves DOWN)
         // Adjust this if characters look like they are floating or buried
         verticalOffset: {
-            frank: 135,
+            frank: 20, // Reduced from 80 to move further up
+            frankBoss: 60, // Separate placement for Boss fight (Mobile)
             lukas: 115,
             duca: 130,
             leader: 130,
-            boss: 90,
+            boss: -10, // Reduced from 20 to move further up
         },
         // Combat Distances (Distance from center of screen)
         position: {
@@ -35,19 +37,21 @@ export const PLACEMENT_CONFIG = {
     desktop: {
         // Character Sizes
         scale: {
-            frank: 4.0,
-            lukas: 3.2,
-            duca: 4.0,
-            leader: 4.0,
-            boss: 2.6,
+            frank: 3.4,
+            frankBoss: 3.4, // Separate scale for Boss fight (Desktop)
+            lukas: 2.6, // Reduced from 3.2
+            duca: 3.2, // Reduced from 4.0
+            leader: 3.2, // Reduced from 4.0
+            boss: 2.2,
         },
         // Vertical Alignment
         verticalOffset: {
-            frank: 90,
+            frank: 95, // Moved lower to align with tracks
+            frankBoss: 50, // Separate placement for Boss fight (Desktop)
             lukas: 60,
             duca: 90,
             leader: 90,
-            boss: 0,
+            boss: -80, // Reduced from -60
         },
         // Combat Distances (Note: These are wider for desktop screens)
         position: {

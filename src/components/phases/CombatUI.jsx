@@ -56,10 +56,13 @@ export function AttackLoadingBar({ attackWarning, attackActive, gameState, enemy
 
   // Positioned lower to avoid the top HUD
   // Lower it even more on mobile to be closer to characters
-  const barTop = groundY - enemySpriteSize * (isMobile ? 0.6 : 0.85)
+  // UPDATED: User requested bar to be "more up" (above the boss)
+  // Previous: (isMobile ? 0.6 : 0.85) -> meant it was overlapping body
+  // New: 1.2 determines height above sprite. Lowered from 1.6 to ensure visibility.
+  const barTop = groundY - enemySpriteSize * 1.2
 
-  // For Leader, hide the prompt until the bar is halfway full
-  const showPrompt = currentEnemyType?.id !== 'leader' || windupProgress > 0.5
+  // For Leader AND Boss, hide the prompt until the bar is halfway full
+  const showPrompt = (currentEnemyType?.id !== 'leader' && currentEnemyType?.id !== 'boss') || windupProgress > 0.5
 
   return (
     <div className="absolute pointer-events-none" style={{ left: enemyX + enemySpriteSize * 0.2, top: barTop, width: enemySpriteSize * 0.6, zIndex: 60 }}>

@@ -31,7 +31,7 @@ export default function CombatEffects() {
                     </div>
                 )
             })}
-            <style jsx>{`
+            <style>{`
         @keyframes combo-pop {
           0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
           20% { transform: translate(-50%, -50%) scale(1.5) rotate(0deg); opacity: 1; }

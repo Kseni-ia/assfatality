@@ -21,12 +21,6 @@ export default function CombatPhase() {
   const [enemyFrame, setEnemyFrame] = useState(0)
   const [isEnemyHit, setIsEnemyHit] = useState(false)
 
-  // Load background image
-  useEffect(() => {
-    const img = new Image()
-    img.src = '/sprites/bg/sceneBackground320x128.png'
-    img.onload = () => { bgImageRef.current = img }
-  }, [])
 
   const {
     gameState,
@@ -75,6 +69,22 @@ export default function CombatPhase() {
     isMobile,
     setMobile,
   } = useGameStore()
+
+  // Load background image
+  useEffect(() => {
+    // Clear previous background to prevent showing wrong one while loading
+    bgImageRef.current = null
+
+    const img = new Image()
+    const isBoss = currentEnemyType?.id === 'boss'
+    const src = isBoss ? '/sprites/bg/bgBoss.jpg' : '/sprites/bg/sceneBackground320x128.png'
+
+    img.src = src
+    img.onload = () => { bgImageRef.current = img }
+    img.onerror = (e) => {
+      console.error('Failed to load background:', src, e)
+    }
+  }, [currentEnemyType])
 
   // Keyboard controls
   useEffect(() => {
@@ -131,7 +141,7 @@ export default function CombatPhase() {
     }
 
     // Draw background (static for combat)
-    drawBackground(ctx, width, height, bgImageRef.current)
+    drawBackground(ctx, width, height, bgImageRef.current, state.currentEnemyType?.id === 'boss')
     drawGround(ctx, width, groundY)
     // Draw Shadow
     // Use config scale for shadow size
@@ -214,7 +224,7 @@ export default function CombatPhase() {
   const config = isMobile ? PLACEMENT_CONFIG.mobile : PLACEMENT_CONFIG.desktop
 
   // Frank scale logic
-  const frankScale = config.scale.frank
+  const frankScale = (currentEnemyType?.id === 'boss' && config.scale.frankBoss) ? config.scale.frankBoss : config.scale.frank
   const frankSpriteSize = FRANK_FRAME_SIZE * frankScale
 
   // Enemy scale logic
@@ -282,9 +292,9 @@ export default function CombatPhase() {
         className="absolute pointer-events-none"
         style={{
           zIndex: 10,
-          zIndex: 10,
           left: playerX,
-          top: groundY + playerY - frankSpriteSize + config.verticalOffset.frank + (isDucking ? 60 : 0),
+          // Use 'frankBoss' offset if fighting boss, otherwise 'frank'
+          top: groundY + playerY - frankSpriteSize + (currentEnemyType?.id === 'boss' ? config.verticalOffset.frankBoss : config.verticalOffset.frank) + (isDucking ? 60 : 0),
           width: frankSpriteSize,
           height: frankSpriteSize,
           backgroundImage: `url(/sprites/frank/${getFrankSprite()}.png)`,
@@ -298,156 +308,30 @@ export default function CombatPhase() {
       {/* Enemy sprite */}
       {currentEnemyType && (
         <>
-          {/* Boss Appearance Effect - particles and glow */}
+          {/* Boss Appearance Effect - particles and glow REMOVED as per request to use sprite only */}
           {currentEnemyType.id === 'boss' && showBossAppearEffect && (
             <div
               className="absolute pointer-events-none"
               style={{
                 zIndex: 15,
                 left: enemyX - 50,
-                top: groundY - enemySpriteSize - 100,
+                top: groundY - enemySpriteSize - 50,
                 width: enemySpriteSize + 100,
-                height: enemySpriteSize + 200,
+                height: enemySpriteSize + 100,
               }}
             >
-              {/* 1. Ground Vortex (Portal) - Darker & Deeper */}
+              {/* Simple smoke/glow underlay if needed, or leave empty to rely on sprite */}
               <div style={{
                 position: 'absolute',
                 left: '50%',
                 bottom: 40,
-                transform: 'translate(-50%, 50%) rotateX(75deg)',
-                width: 220,
-                height: 220,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, #000000 30%, #4b0082 60%, transparent 80%)',
-                boxShadow: '0 0 30px #8b00ff inset',
-                opacity: 0.9,
-                animation: 'portal-pulse 2s ease-in-out infinite',
-              }} />
-
-              {/* 2. Rotating Rune/Magic Circles */}
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                bottom: 50,
-                transform: 'translate(-50%, 50%) rotateX(75deg)',
-                width: 200,
-                height: 200,
-                border: '2px cubic-bezier(0.4, 0, 0.6, 1) #ff00ff',
-                borderStyle: 'dashed',
-                borderRadius: '50%',
-                boxShadow: '0 0 10px #ff00ff, 0 0 20px #8b00ff',
-                animation: 'rune-spin 4s linear infinite',
-                opacity: 0.7,
-              }} />
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                bottom: 50,
-                transform: 'translate(-50%, 50%) rotateX(75deg)',
-                width: 160,
-                height: 160,
-                border: '2px solid #00ffff',
-                borderStyle: 'dotted',
-                borderRadius: '50%',
-                boxShadow: '0 0 10px #00ffff',
-                animation: 'rune-spin-reverse 3s linear infinite',
-                opacity: 0.6,
-              }} />
-
-              {/* 3. Intense Central Beam */}
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                bottom: 60,
                 transform: 'translateX(-50%)',
-                width: 140,
-                height: '140%', // Taller
-                background: 'linear-gradient(to top, white 0%, #d8b4fe 10%, rgba(139, 0, 255, 0.4) 40%, transparent 80%)',
-                filter: 'blur(8px)',
-                mixBlendMode: 'screen',
-                animation: 'beam-intensify 0.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate',
+                width: 150,
+                height: 20,
+                background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 70%)',
+                filter: 'blur(5px)',
+                animation: 'fade-out 2s ease-out forwards',
               }} />
-
-              {/* 4. Rising Particles (Fast & Energetic) */}
-              {[...Array(30)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    left: `${20 + Math.random() * 60}%`,
-                    bottom: 60,
-                    width: 3 + Math.random() * 6,
-                    height: 10 + Math.random() * 30, // Stretch them vertically for speed look
-                    background: i % 3 === 0 ? '#ff00ff' : i % 3 === 1 ? '#00ffff' : '#ffffff',
-                    boxShadow: '0 0 10px currentColor',
-                    animation: `rise-streak ${0.5 + Math.random() * 0.5}s linear infinite`,
-                    animationDelay: `${Math.random()}s`,
-                    opacity: 0,
-                  }}
-                />
-              ))}
-
-              {/* 5. Lightning Arcs (SVG Overlay) */}
-              <div style={{ position: 'absolute', inset: -50, pointerEvents: 'none', filter: 'drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px #bf00ff)' }}>
-                <svg width="100%" height="100%" viewBox="0 0 200 300" preserveAspectRatio="none">
-                  <path d="M100,50 L80,100 L120,150 L90,200 L110,250" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" style={{ opacity: 0, animation: 'lightning-1 0.4s infinite' }} />
-                  <path d="M100,50 L130,120 L90,160 L110,220 L90,280" fill="none" stroke="#e0b0ff" strokeWidth="3" strokeLinecap="round" style={{ opacity: 0, animation: 'lightning-2 0.3s infinite 0.1s' }} />
-                  <path d="M100,280 L70,220 L110,160 L80,100 L110,40" fill="none" stroke="#fff" strokeWidth="1" strokeLinecap="round" style={{ opacity: 0, animation: 'lightning-3 0.5s infinite 0.2s' }} />
-                </svg>
-              </div>
-
-              {/* 6. Expanding Shockwaves */}
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                top: '60%', // Centered on boss body center
-                width: 10,
-                height: 10,
-                border: '4px solid white',
-                borderRadius: '50%',
-                transform: 'translate(-50%, -50%) scale(1)',
-                opacity: 0,
-                animation: 'shockwave 2s ease-out infinite',
-              }} />
-              <div style={{
-                position: 'absolute',
-                left: '50%',
-                top: '60%',
-                width: 10,
-                height: 10,
-                border: '2px solid #ff00ff',
-                borderRadius: '50%',
-                transform: 'translate(-50%, -50%) scale(1)',
-                opacity: 0,
-                animation: 'shockwave 2s ease-out infinite 0.7s',
-              }} />
-
-              <style jsx>{`
-                @keyframes portal-pulse {
-                  0%, 100% { transform: translate(-50%, 50%) rotateX(75deg) scale(1); opacity: 0.9; }
-                  50% { transform: translate(-50%, 50%) rotateX(75deg) scale(1.1); opacity: 1; }
-                }
-                @keyframes rune-spin { from { transform: translate(-50%, 50%) rotateX(75deg) rotate(0deg); } to { transform: translate(-50%, 50%) rotateX(75deg) rotate(360deg); } }
-                @keyframes rune-spin-reverse { from { transform: translate(-50%, 50%) rotateX(75deg) rotate(360deg); } to { transform: translate(-50%, 50%) rotateX(75deg) rotate(0deg); } }
-                @keyframes beam-intensify {
-                  from { opacity: 0.8; height: 140%; transform: translateX(-50%) scaleX(1); }
-                  to { opacity: 1; height: 150%; transform: translateX(-50%) scaleX(1.2); }
-                }
-                @keyframes rise-streak {
-                  0% { transform: translateY(0) scaleY(1); opacity: 0; }
-                  20% { opacity: 1; }
-                  100% { transform: translateY(-400px) scaleY(2); opacity: 0; }
-                }
-                @keyframes lightning-1 { 0%, 100% { opacity: 0; } 5%, 15% { opacity: 1; } 20% { opacity: 0; } }
-                @keyframes lightning-2 { 0%, 100% { opacity: 0; } 30%, 40% { opacity: 1; } 45% { opacity: 0; } }
-                @keyframes lightning-3 { 0%, 100% { opacity: 0; } 60%, 70% { opacity: 1; } 75% { opacity: 0; } }
-                @keyframes shockwave {
-                  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; border-width: 10px; }
-                  10% { opacity: 1; }
-                  100% { transform: translate(-50%, -50%) scale(20); opacity: 0; border-width: 0px; }
-                }
-              `}</style>
             </div>
           )}
 
@@ -458,7 +342,10 @@ export default function CombatPhase() {
               style={{
                 zIndex: 20,
                 left: enemyX,
-                top: groundY - enemySpriteSize + 0, // Boss alignment
+                // Removed the -40 manual offset and reliance on translateY animation
+                // We want it exactly where the idle sprite is.
+                // If appearBoss.png has the same dimensions/center as idleBoss, this is correct.
+                top: groundY - enemySpriteSize + (config.verticalOffset.boss || 0),
                 width: enemySpriteSize,
                 height: enemySpriteSize,
                 backgroundImage: `url(/sprites/tool/appearBoss.png)`,
@@ -466,9 +353,8 @@ export default function CombatPhase() {
                 backgroundSize: `${3 * LEADER_FRAME_SIZE * currentEnemyScale}px ${enemySpriteSize}px`,
                 backgroundRepeat: 'no-repeat',
                 imageRendering: 'pixelated',
-                // Dramatic glow effect during appearance
-                filter: `drop-shadow(0 0 30px #8b00ff) drop-shadow(0 0 60px #ff00ff) brightness(1.2)`,
-                animation: 'boss-materialize 2.5s ease-out forwards',
+                // Inline filter removed to let animation control it fully
+                animation: 'boss-materialize 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
               }}
             />
           ) : (
@@ -511,14 +397,25 @@ export default function CombatPhase() {
 
           {/* Boss materialize animation */}
           {currentEnemyType.id === 'boss' && bossAppearing && (
-            <style jsx>{`
+            <style>{`
               @keyframes boss-materialize {
-                0% { opacity: 0; transform: scale(0.5) translateY(50px); filter: brightness(4) blur(10px) contrast(200%); }
-                10% { opacity: 1; transform: scale(0.8) translateY(20px); filter: brightness(3) blur(5px) contrast(150%); }
-                40% { transform: scale(1.1) translateY(-10px); filter: brightness(1.5) blur(0) contrast(120%); }
-                60% { transform: scale(0.98) translateY(0); filter: brightness(1.2) contrast(110%); }
-                100% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1) contrast(100%); }
+                0% { 
+                  opacity: 0; 
+                  transform: scale(0.9); 
+                  filter: brightness(5) blur(20px) contrast(200%) drop-shadow(0 0 50px white); 
+                }
+                40% { 
+                  opacity: 1; 
+                  transform: scale(1.05); 
+                  filter: brightness(2) blur(5px) contrast(150%) drop-shadow(0 0 30px #d8b4fe); 
+                }
+                100% { 
+                  opacity: 1; 
+                  transform: scale(1); 
+                  filter: brightness(1) blur(0) contrast(100%) drop-shadow(0 0 20px #8b00ff); 
+                }
               }
+              @keyframes fade-out { to { opacity: 0; } }
             `}</style>
           )}
         </>
@@ -583,7 +480,7 @@ export default function CombatPhase() {
   )
 }
 
-function drawBackground(ctx, width, height, bgImage) {
+function drawBackground(ctx, width, height, bgImage, isBoss) {
   const gradient = ctx.createLinearGradient(0, 0, 0, height)
   gradient.addColorStop(0, '#1a0033')
   gradient.addColorStop(0.5, '#2d0066')
@@ -592,11 +489,18 @@ function drawBackground(ctx, width, height, bgImage) {
   ctx.fillRect(0, 0, width, height)
 
   if (bgImage) {
-    const bgHeight = height
-    const bgWidth = (bgImage.width / bgImage.height) * bgHeight
-    ctx.imageSmoothingEnabled = false
-    for (let x = 0; x < width; x += bgWidth) {
-      ctx.drawImage(bgImage, x, 0, bgWidth, bgHeight)
+    if (isBoss) {
+      // Boss background: smooth scaling, stretch to cover entire screen (assumed 16:9 like screen)
+      ctx.imageSmoothingEnabled = true
+      ctx.drawImage(bgImage, 0, 0, width, height)
+    } else {
+      // Pixel art background: preserve pixels, tile horizontally
+      const bgHeight = height
+      const bgWidth = (bgImage.width / bgImage.height) * bgHeight
+      ctx.imageSmoothingEnabled = false
+      for (let x = 0; x < width; x += bgWidth) {
+        ctx.drawImage(bgImage, x, 0, bgWidth, bgHeight)
+      }
     }
   }
 }

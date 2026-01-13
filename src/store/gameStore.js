@@ -411,6 +411,21 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
+  devJumpToObstacle: (enemyIndex) => {
+    // Setup state for obstacle phase preceding the given enemy index
+    set({
+      ...INITIAL_STATE,
+      gameState: GAME_STATES.OBSTACLE_PHASE,
+      playerState: PLAYER_STATES.RUNNING,
+      obstacles: generateObstacles(),
+      obstaclesPassed: 0,
+      enemySequenceIndex: enemyIndex,
+      defeatedEnemies: enemyIndex,
+      score: enemyIndex * 1000,
+      mana: 0,
+    })
+  },
+
   updateCombatIntro: () => {
     const { enemyX, playerX, introPhase } = get()
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000
@@ -708,20 +723,7 @@ export const useGameStore = create((set, get) => ({
     const newHealth = enemyHealth - 1
 
     if (newHealth <= 0) {
-      // Enemy defeated, move to next enemy
-      const nextIndex = enemySequenceIndex + 1
-      if (nextIndex >= ENEMY_SEQUENCE.length) {
-        // All enemies defeated
-        set({ gameState: GAME_STATES.VICTORY })
-        audioManager.play('win')
-      } else {
-        // Short delay then start next enemy
-        set({ enemyHealth: 0 })
-        setTimeout(() => {
-          get().startCombatIntro(nextIndex)
-        }, 1500)
-        audioManager.play('enemyDeath')
-      }
+      get().advanceToNextLevel()
     } else {
       set({ enemyHealth: newHealth })
       const enemyId = get().currentEnemyType.id
@@ -729,8 +731,56 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
+  advanceToNextLevel: () => {
+    const { enemySequenceIndex, defeatedEnemies } = get()
+    const nextIndex = enemySequenceIndex + 1
+    const newDefeated = defeatedEnemies + 1
+
+    if (nextIndex >= ENEMY_SEQUENCE.length) {
+      set({
+        enemyHealth: 0,
+        defeatedEnemies: newDefeated,
+        gameState: GAME_STATES.VICTORY
+      })
+      audioManager.play('win')
+    } else {
+      // Enemy defeated - Play sound and clear combat state
+      set({
+        enemyHealth: 0,
+        defeatedEnemies: newDefeated,
+        attackActive: false,
+        attackWarning: null
+      })
+      audioManager.play('enemyDeath')
+
+      // Short delay then start next OBSTACLE PHASE
+      setTimeout(() => {
+        set({
+          gameState: GAME_STATES.OBSTACLE_PHASE,
+          enemySequenceIndex: nextIndex,
+          obstacles: generateObstacles(),
+          obstaclesPassed: 0,
+          // Reset player for running
+          playerState: PLAYER_STATES.RUNNING,
+          playerX: 100,
+          playerY: 0,
+          playerVelocityY: 0,
+          isJumping: false,
+          isDucking: false,
+          // Reset combat flags
+          screenShake: false,
+          isInvincible: false,
+          mana: 0,
+          assToolProjectiles: [],
+          bossProjectiles: [],
+          bossBotProjectiles: [],
+        })
+      }, 1500)
+    }
+  },
+
   startCombatPhase: () => {
-    get().startCombatIntro(0) // Start with first enemy (Lukas)
+    get().startCombatIntro() // Uses current enemySequenceIndex from state
   },
 
   processEnemyAttack: (attackType) => {
@@ -800,17 +850,7 @@ export const useGameStore = create((set, get) => ({
   setAttackWarning: (warning) => set({ attackWarning: warning }),
 
   defeatEnemy: () => {
-    const { defeatedEnemies, currentEnemyIndex, enemies } = get()
-    const newDefeated = defeatedEnemies + 1
-
-    if (newDefeated >= 3) {
-      set({ defeatedEnemies: newDefeated, gameState: GAME_STATES.VICTORY })
-    } else {
-      set({
-        defeatedEnemies: newDefeated,
-        currentEnemyIndex: currentEnemyIndex + 1,
-      })
-    }
+    get().advanceToNextLevel()
   },
 
   // ASS FATALITY
@@ -1075,16 +1115,7 @@ export const useGameStore = create((set, get) => ({
 
       if (newHealth <= 0) {
         // Enemy defeated
-        const { enemySequenceIndex } = get()
-        const nextIndex = enemySequenceIndex + 1
-        if (nextIndex >= ENEMY_SEQUENCE.length) {
-          set({ enemyHealth: 0, gameState: GAME_STATES.VICTORY })
-        } else {
-          set({ enemyHealth: 0, attackActive: false, attackWarning: null })
-          setTimeout(() => {
-            get().startCombatIntro(nextIndex)
-          }, 1500)
-        }
+        get().advanceToNextLevel()
       } else {
         set({ enemyHealth: newHealth, screenShake: true, enemyHitTimestamp: Date.now() })
         setTimeout(() => set({ screenShake: false }), 200)

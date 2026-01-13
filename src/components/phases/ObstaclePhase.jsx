@@ -150,7 +150,7 @@ export default function ObstaclePhase() {
         className={`absolute pointer-events-none ${isBlinking ? 'respawn-blink' : ''}`}
         style={{
           left: playerX,
-          top: groundY + playerY - frankSpriteSize + 35,
+          top: groundY + playerY - frankSpriteSize + 75,
           width: frankSpriteSize,
           height: frankSpriteSize,
           backgroundImage: `url(/sprites/frank/${getFrankSprite()}.png)`,
